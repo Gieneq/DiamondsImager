@@ -1,0 +1,38 @@
+<html>
+    <head>
+        <title>Upload Test</title>
+    </head>
+    <body>
+        <h2>Upload Image</h2>
+        <input type="file" id="fileInput"/>
+        <button onclick="uploadFile()">Upload</button>
+    
+        <p id="result"></p>
+    
+        <script>
+            async function uploadFile() {
+                const fileInput = document.getElementById("fileInput");
+                const file = fileInput.files[0]; // Get selected file
+                if (!file) {
+                    document.getElementById("result").innerText = "Please select a file first.";
+                    return;
+                }
+    
+                let formData = new FormData();
+                formData.append("file", file);
+    
+                try {
+                    let response = await fetch("/api/upload", {
+                        method: "POST",
+                        body: formData
+                    });
+    
+                    let result = await response.text();
+                    document.getElementById("result").innerText = result;
+                } catch (error) {
+                    document.getElementById("result").innerText = "Upload failed: " + error.message;
+                }
+            }
+        </script>
+    </body>
+</html>
