@@ -1,7 +1,7 @@
-pub mod routes;
 pub mod settings;
-pub mod handlers;
-pub mod services;
+pub mod routes;
+pub mod backend;
+pub mod frontend;
 
 pub mod tools {
     use std::{io, path::Path, fs};

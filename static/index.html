@@ -22,7 +22,7 @@
                 formData.append("file", file);
     
                 try {
-                    let response = await fetch("/api/upload", {
+                    let response = await fetch("/api/image/new", {
                         method: "POST",
                         body: formData
                     });

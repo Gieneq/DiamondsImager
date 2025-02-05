@@ -8,6 +8,7 @@ pub struct Size<T> {
 pub struct Settings {
     pub address: String,
     pub port: u16,
+    pub image_max_bytes: usize,
     pub image_min_size: Size<u32>,
     pub image_max_size: Size<u32>,
     pub tmp_path: String,
@@ -41,6 +42,7 @@ impl Settings {
         Self {
             address: load_setting_string("SERVER_ADDRESS"),
             port: load_setting_u16("SERVER_PORT"),
+            image_max_bytes: (load_setting_u16("IMG_MAX_KIB") as usize) * 1024,
             image_min_size: load_size_u32("IMG_MIN_WIDTH", "IMG_MIN_HEIGHT"),
             image_max_size: load_size_u32("IMG_MAX_WIDTH", "IMG_MAX_HEIGHT"),
             tmp_path: load_setting_string("TMP_DIR_PATH"),
