@@ -24,7 +24,7 @@ pub async fn image_upload(
     
     let result_filename = services::save_file_with_generated_unique_filename(&settings_appdata, form.file)?;
 
-    Ok(HttpResponse::Ok().json(ImageUploadResult { new_filename: result_filename }))
+    Ok(HttpResponse::Ok().json(ImageUploadResult { saved_filename: result_filename }))
 }
 
 

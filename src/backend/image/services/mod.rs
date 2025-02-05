@@ -50,7 +50,20 @@ fn create_unique_filepath(settings: &Settings, unique_filename: &str) -> String 
     format!("{}/{}", settings.tmp_path, unique_filename)
 }
 
+#[test]
+fn test_image_creation() {
+    use tempfile::NamedTempFile;
+    let settings = Settings::load();
+    let empty_temp_file = TempFile {
+        file: NamedTempFile::new().unwrap(),
+        file_name: Some("test_file.jpg".to_string()),
+        content_type: None,
+        size: 0
+    };
 
+    let result = validate_input_file(&settings, empty_temp_file);
+    assert!(matches!(result, Err(InputFileError::FileEmpty)));
+}
 
 
 

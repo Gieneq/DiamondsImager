@@ -1,5 +1,5 @@
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::super::services::errors::InputFileError;
 
@@ -26,9 +26,9 @@ impl From<InputFileError> for Box<dyn ResponseError> {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ImageUploadResult {
-    pub new_filename: String,
+    pub saved_filename: String,
 }
 
 // impl ResponseError for ProcessingFileError {
