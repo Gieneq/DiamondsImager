@@ -14,7 +14,9 @@ pub fn save_file_with_generated_unique_filename(settings: &Settings, file: TempF
     let unique_filename = create_unique_filename(file.file_name.as_ref().map(|s| s.as_str()))?;
     let unique_filepath = create_unique_filepath(settings, &unique_filename);
     log::info!("saving to '{unique_filepath}'");
-    match file.file.persist(unique_filepath.clone()) {
+   
+    
+    match file.file.persist_noclobber(unique_filepath.clone()) {
         Ok(_) => Ok(unique_filename),
         Err(e) => {
             log::error!("Could not save file, reason {e}");

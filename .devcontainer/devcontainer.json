@@ -18,10 +18,17 @@
 				"rust-lang.rust-analyzer"
 			]
 		}
-	}
+	},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
+	"forwardPorts": [8080],
+	"portsAttributes": {
+		"8080": {
+			"label": "ActixWeb API",
+			"onAutoForward": "notify",
+			"protocol": "http"
+		}
+	}
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// "postCreateCommand": "rustc --version",

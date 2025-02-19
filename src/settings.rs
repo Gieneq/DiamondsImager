@@ -51,3 +51,13 @@ impl Settings {
         }
     }
 }
+
+pub mod system {
+    use super::Settings;
+
+    pub fn setup(settings: &Settings) {
+        log::info!("temp dir is '{:?}'", std::env::temp_dir());
+        std::env::set_var("TMPDIR", settings.tmp_path.as_str());
+        log::info!("temp dir is changed to'{:?}'", std::env::temp_dir());
+    }
+}
