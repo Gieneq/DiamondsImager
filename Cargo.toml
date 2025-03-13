@@ -4,19 +4,16 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-actix-web = "4.9.0"
-actix-utils = "3.0.1"
-actix-multipart = { version = "0.7.2", features = ["tempfile"] }
-actix-form-data = "0.6.2"
-actix-files = "0.6.6"
-
-reqwest = { version = "0.12.12", features = ["multipart", "json"] }
 tokio = { version = "1", features = ["full"] }
 
-serde = { version = "1.0.217", features = ["derive"]}
+axum = { version = "0.8.1" }
 
-log = "0.4.25"
-env_logger = "0.11.6"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+reqwest = { version = "0.12.12", features = ["multipart", "json"] }
+
+serde = { version = "1.0.217", features = ["derive"]}
 
 dotenv = "0.15.0"
 

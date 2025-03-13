@@ -1,3 +1,4 @@
+
 #[derive(Debug, Clone, Copy)]
 pub struct Size<T> {
     pub width: T,
@@ -49,15 +50,5 @@ impl Settings {
             log_level: dotenv::var("LOG_LEVEL").unwrap_or("info".to_string()),
             workers_count: load_setting_u16("WORKERS_COUNT") as usize,
         }
-    }
-}
-
-pub mod system {
-    use super::Settings;
-
-    pub fn setup(settings: &Settings) {
-        log::info!("temp dir is '{:?}'", std::env::temp_dir());
-        std::env::set_var("TMPDIR", settings.tmp_path.as_str());
-        log::info!("temp dir is changed to'{:?}'", std::env::temp_dir());
     }
 }

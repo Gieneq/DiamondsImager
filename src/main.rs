@@ -1,39 +1,32 @@
-use diamonds_imager::{routes, settings::{Settings, system}, tools};
+pub mod settings;
+pub mod router;
+pub mod handlers;
 
-use actix_web::{
-    middleware::Logger, web, App, HttpServer
-};
+use crate::settings::Settings;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-fn prepare() -> std::io::Result<Settings> {
+
+#[tokio::main]
+async fn main() {
     let settings = Settings::load();
-
-    env_logger::init_from_env(env_logger::Env::new().default_filter_or(&settings.log_level));
-
-    log::debug!("Loaded settings: {settings:?}");
     
-    system::setup(&settings);
+    // Set tracing
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| format!("{}=debug", env!("CARGO_CRATE_NAME")).into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
 
-    tools::clear_files_in_dir(&settings.tmp_path)?;
+    let app = router::get_router();
 
-    Ok(settings)
+    let listener = tokio::net::TcpListener::bind(format!("{}:{}", settings.address, settings.port))
+        .await
+        .expect("Could not start listener");
+    tracing::info!("listening on {}", listener.local_addr().unwrap());
+    
+    axum::serve(listener, app)
+        .await
+        .unwrap();
 }
-
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    let settings = prepare()?;
-
-    log::info!("Starting HTTP server at http://{}:{}", settings.address, settings.port);
-
-    let settings_appdata = web::Data::new(settings.clone());
-    HttpServer::new(move || {
-        App::new()
-            .app_data(settings_appdata.clone())
-            .configure(routes::config)
-            .wrap(Logger::default())
-    })
-    .workers(settings.workers_count)
-    .bind((settings.address.as_str(), settings.port))?
-    .run()
-    .await
-}
-
