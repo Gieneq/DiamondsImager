@@ -12,7 +12,7 @@ pub struct Settings {
     pub image_max_bytes: usize,
     pub image_min_size: Size<u32>,
     pub image_max_size: Size<u32>,
-    pub tmp_path: String,
+    pub upload_dir: String,
     pub log_level: String,
     pub workers_count: usize,
 }
@@ -46,7 +46,7 @@ impl Settings {
             image_max_bytes: (load_setting_u16("IMG_MAX_KIB") as usize) * 1024,
             image_min_size: load_size_u32("IMG_MIN_WIDTH", "IMG_MIN_HEIGHT"),
             image_max_size: load_size_u32("IMG_MAX_WIDTH", "IMG_MAX_HEIGHT"),
-            tmp_path: load_setting_string("TMP_DIR_PATH"),
+            upload_dir: load_setting_string("TMP_DIR_PATH"),
             log_level: dotenv::var("LOG_LEVEL").unwrap_or("info".to_string()),
             workers_count: load_setting_u16("WORKERS_COUNT") as usize,
         }
