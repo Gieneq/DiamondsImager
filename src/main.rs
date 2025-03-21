@@ -15,6 +15,7 @@ use std::{
     sync::Arc
 };
 
+use diamonds_imager_generator::dmc::PaletteDmc;
 use tracing_subscriber::{
     layer::SubscriberExt, 
     util::SubscriberInitExt
@@ -59,10 +60,12 @@ async fn main() {
         .await
         .expect("could not recreate upload dir");
 
+    let dmc_full_palette = PaletteDmc::load_dmc_palette().unwrap();
     let app_data = Arc::new(AppData {
         uplad_dir: upload_dir_path,
         image_max_width: settings.image_max_size.width as usize,
-        image_max_height: settings.image_max_size.height as usize
+        image_max_height: settings.image_max_size.height as usize,
+        dmc_full_palette
     });
 
     let app = router::get_router(settings.image_max_bytes, app_data.clone())

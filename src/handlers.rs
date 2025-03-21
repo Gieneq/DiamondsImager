@@ -17,9 +17,8 @@ use crate::errors::{
     AppError, 
     UploadImageError
 };
-use crate::requests::PaleteExtractRequest;
 use crate::results::{
-    PaletteExtractResult, 
+    PaletteResult, 
     UploadImageResult
 };
 
@@ -110,6 +109,11 @@ pub async fn upload_image(
     ))
 }
 
-pub async fn extract_palette(extract::Json(_request): extract::Json<PaleteExtractRequest>) -> Result<PaletteExtractResult, AppError> {
-    unimplemented!()
+pub async fn dmc_full_palette(
+    extract::State(app_data): extract::State<Arc<AppData>>
+) -> PaletteResult {
+    PaletteResult(app_data
+        .dmc_full_palette
+        .clone()
+        .into())
 }

@@ -12,7 +12,7 @@ use axum::{
 use crate::{
     app::AppData, 
     handlers::{
-        extract_palette, 
+        dmc_full_palette, 
         overall_status, 
         upload_image
     }
@@ -23,7 +23,9 @@ pub fn get_router(image_size_limit: usize, app_data: Arc<AppData>) -> Router {
         .route("/", get(overall_status))
         .route("/upload", post(upload_image)
             .layer(DefaultBodyLimit::max(image_size_limit))
+            .with_state(app_data.clone())
+        )
+        .route("/palette/dmc", get(dmc_full_palette)
             .with_state(app_data)
         )
-        .route("/palette", get(extract_palette))
 }

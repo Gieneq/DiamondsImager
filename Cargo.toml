@@ -22,7 +22,9 @@ dotenv = "0.15.0"
 
 uuid = { version = "1.12.1", features = ["v4", "fast-rng", "macro-diagnostics"] }
 
-thiserror = "2.0.11"
+thiserror = "2.0.12"
 image = "0.25.5"
+ditherum = { git = "https://github.com/Gieneq/Ditherum.git", version = "0.2.2" }
+diamonds_imager_generator = { git = "https://github.com/Gieneq/DiamondsImagerGenerator.git", version = "0.1.1" }
 
 tempfile = "3.16.0"

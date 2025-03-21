@@ -1,3 +1,4 @@
+use diamonds_imager_generator::dmc::PaletteDmcData;
 use serde::{
     Deserialize, 
     Serialize
@@ -19,9 +20,7 @@ pub struct UploadImageResult {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PaletteExtractResult {
-    id: String,
-}
+pub struct PaletteResult(pub PaletteDmcData);
 
 impl UploadImageResult {
     pub fn new(id: String, width: usize, height: usize) -> Self {
@@ -36,13 +35,7 @@ impl IntoResponse for UploadImageResult {
     }
 }
 
-impl PaletteExtractResult {
-    pub fn new(id: String) -> Self {
-        Self { id }
-    }
-}
-
-impl IntoResponse for PaletteExtractResult {
+impl IntoResponse for PaletteResult {
     fn into_response(self) -> Response {
         let body = axum::Json(self);
         (StatusCode::OK, body).into_response()
