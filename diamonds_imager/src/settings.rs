@@ -35,9 +35,15 @@ fn load_size_u32(key_width: &str, key_height: &str) -> Size<u32> {
     }
 }
 
+const DOT_ENV_ALTERNATIVE_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/.env");
+
 impl Settings {
     pub fn load() -> Self {
-        dotenv::dotenv().ok();
+        if std::fs::exists(DOT_ENV_ALTERNATIVE_PATH).is_ok() {
+            dotenv::from_path(DOT_ENV_ALTERNATIVE_PATH).ok();
+        } else {
+            dotenv::dotenv().ok();
+        }
 
         Self {
             address: load_setting_string("SERVER_ADDRESS"),

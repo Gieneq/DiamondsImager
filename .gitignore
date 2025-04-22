@@ -1,4 +1,7 @@
 /target
-/tmpsf
 .env
 scratchpad.md
+diamonds_imager/.env
+diamonds_imager/tmpsf
+diamonds_gen/res/outputs
+ditherum/res/test_results

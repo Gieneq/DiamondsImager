@@ -1,8 +1,10 @@
 use std::{
-    net::SocketAddr, path::PathBuf, sync::Arc
+    net::SocketAddr, 
+    path::PathBuf, 
+    sync::Arc
 };
 
-use diamonds_imager_generator::dmc::PaletteDmc;
+use diamonds_gen::dmc::PaletteDmc;
 
 use tower_http::trace::{
     DefaultMakeSpan, 

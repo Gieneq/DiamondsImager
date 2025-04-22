@@ -1,50 +1,68 @@
 # Diamond Imager
-Rust based web app to process images into diamond craft pictures ready to be printed.
-Custom dependencies used:
-- [Ditherum](https://github.com/Gieneq/Ditherum):
-  - dithering & image manipulation,
-  - clustering & pallette reduction,
-- [DiamondsImagerGenerator](https://github.com/Gieneq/DiamondsImagerGenerator):
-  - creating colors palette subset,
-  - preview generation,
-  - final printable PDF generation,
 
-## Roadmap
+<p align="center"> 🚧 </p>
+<p align="center"> **This project is currently in active development.** </p>
+<p align="center"> Expect breaking changes and unfinished features. </p>
+<p align="center"> 🚧 </p>
 
-What was done:
-- [x] uploading images & assigning unique id
-- [x] uploading images tests
+Rust & Axum web app to process images into Diamond Painting projects ready to be printed.
+
+<p align="center">
+  <img alt="Example printed output" src="res/dithering_result.png">
+</p>
+<p align="center">
+  <em> Example of printed output </em>
+</p>
+
+## Flow idea
+1. **User uploads image**:
+  - Image is stored as-is
+  - User gets a UUID
+  - Image is accessible for a limited time
+2. **User request one of DMC palettes**:
+  - Full DMC palette
+  - Subset of colors most representative of the uploaded image
+3. **User loops**:
+  - Optionally modify the palette manually or re-extract subset
+  - Adjust color manipulation parameters
+  - Crop/rotate the image
+  - Request preview
+  - Generate final PDF
 
 ## Endpoints idea
+| Method | Route | Effect |
+|---|---|---|
+| POST | /image | Upload image obtain UUID |
+| GET | /image/{uuid} | Get image metadata (e.g., upload time, resolution) |
+| DELETE | 	/image/{uuid} | Delete uploaded image manually |
+| GET | /palette/dmc | Get full DMC list |
+| GET | /palette/auto/{uuid} | Get auto-generated palette subset based on image |
+| POST | /palette/custom/{uuid} | Submit a custom palette (client-chosen subset) |
+| POST | /image/{uuid}/transform | Crop/rotate/adjust brightness/contrast |
+| GET |	/preview/{uuid} | Generate and return a preview image (e.g., PNG/JPEG) |
+| POST | /pdf/{uuid} | Generate and return the final printable PDF |
+| GET | /pdf/{uuid} | 	Download the generated PDF |
+| GET | /status/{uuid} | 	Check processing status (useful for async steps) |
 
-GET    /palette/dmc                  -> get full DMC list
-POST   /image                        -> upload image
-GET    /image/{id}/status            -> processing state
-POST   /image/{id}/process           -> start processing with params
-GET    /image/{id}/preview           -> download preview
-GET    /image/{id}/result.pdf        -> download final PDF
-GET    /image/{id}/bom               -> get BOM (JSON)
-
-## Flow
-1. User requests DMC colors palette
-2. User select subset of palette or pass as it is,
-3. User uploads image, gets **image_id** upon success,
-4. User by passing **image_id** user can check:
-  - status of any ongoing processing on the image,
-  - start new processing
-5. If processing is ready user can access:
-  - download preview image,
-  - download resulting PDF,
-  - download Bill of Materials (BOM) as JSON
-
-Processing params:
-- image_id,
-- DMC palette subset,
-- paper size & margins,
-
-BOM:
-- DMC diamonds used:
-  - DMC number,
-  - name,
-  - hex color,
-- counts of diamonds
+## Todo
+- [x] Proof of concept
+- [x] Basic image upload with UUID return
+- [x] Store images temporarily with expiration
+- [x] DMC full palette support
+- [x] Automatic DMC palette extraction from image
+- [ ] Manual palette editing interface
+- [ ] Image preview generation
+- [ ] Image manipulation:
+  - [ ] Crop
+  - [ ] Rotate
+  - [ ] Brightness/contrast adjustments
+- [ ] Debounced real-time preview updates (client or server)
+- [x] PDF generation with DMC color grid
+- [ ] API route documentation
+- [ ] Client-side frontend (Wanna try WASM)
+- [ ] Style output for printing (grid size, margins, legend)
+- [ ] Image cleanup job (periodic deletion of expired images)
+- [ ] Consider user accounts (Diesel ORM & Postgress)
+- [ ] Deployment setup (Docker, hosting config)
+- [ ] Add tests (unit & integration)
+- [ ] CI pipeline (formatting, clippy, tests)

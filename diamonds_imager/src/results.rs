@@ -1,4 +1,5 @@
-use diamonds_imager_generator::dmc::PaletteDmcData;
+use diamonds_gen::dmc::PaletteDmcData;
+
 use serde::{
     Deserialize, 
     Serialize
