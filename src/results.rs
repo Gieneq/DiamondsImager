@@ -12,15 +12,25 @@ use axum::{
     }
 };
 
+use crate::services::ImageId;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UploadImageResult {
-    pub id: String,
+    pub id: ImageId,
     pub width: usize,
     pub height: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PaletteResult(pub PaletteDmcData);
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ProcessingStatus {
+
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ProcesingsResult(pub Vec<ProcessingStatus>);
 
 impl UploadImageResult {
     pub fn new(id: String, width: usize, height: usize) -> Self {

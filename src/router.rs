@@ -5,7 +5,7 @@ use axum::{
     routing::{
         get,
         post
-    }, 
+    },
     Router
 };
 
@@ -14,7 +14,8 @@ use crate::{
     handlers::{
         dmc_full_palette, 
         overall_status, 
-        upload_image
+        upload_image,
+        processings_status
     }
 };
 
@@ -26,6 +27,9 @@ pub fn get_router(image_size_limit: usize, app_data: Arc<AppData>) -> Router {
             .with_state(app_data.clone())
         )
         .route("/palette/dmc", get(dmc_full_palette)
-            .with_state(app_data)
+            .with_state(app_data.clone())
+        )
+        .route("/processings", get(processings_status)
+            .with_state(app_data.clone())
         )
 }

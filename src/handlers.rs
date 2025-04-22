@@ -21,6 +21,7 @@ use crate::results::{
     PaletteResult, 
     UploadImageResult
 };
+use crate::services::ImageId;
 
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -60,7 +61,7 @@ pub async fn upload_image(
         .and_then(|oss| oss.to_str())
         .ok_or(UploadImageError::FilenameExtensionMissing)?;
 
-    let new_filename = format!("{}_{}.{}", uploaded_filename_stem, Uuid::new_v4(), extension);
+    let new_filename: ImageId = format!("{}_{}.{}", uploaded_filename_stem, Uuid::new_v4(), extension);
     let new_filepath = app_data.uplad_dir.join(&new_filename);
 
     let field_bytes = field.bytes()
@@ -116,4 +117,10 @@ pub async fn dmc_full_palette(
         .dmc_full_palette
         .clone()
         .into())
+}
+
+pub async fn processings_status(
+    extract::State(app_data): extract::State<Arc<AppData>>
+) {
+    
 }

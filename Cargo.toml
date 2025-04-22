@@ -28,3 +28,5 @@ ditherum = { git = "https://github.com/Gieneq/Ditherum.git", version = "0.2.2" }
 diamonds_imager_generator = { git = "https://github.com/Gieneq/DiamondsImagerGenerator.git", version = "0.1.1" }
 
 tempfile = "3.16.0"
+
+ctrlc = "3.4.6"

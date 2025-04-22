@@ -1,4 +1,3 @@
-
 #[derive(Debug, Clone, Copy)]
 pub struct Size<T> {
     pub width: T,
@@ -49,6 +48,21 @@ impl Settings {
             upload_dir: load_setting_string("TMP_DIR_PATH"),
             log_level: dotenv::var("LOG_LEVEL").unwrap_or("info".to_string()),
             workers_count: load_setting_u16("WORKERS_COUNT") as usize,
+        }
+    }
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            address: "127.0.0.1".to_string(),
+            port: 0,
+            image_max_bytes: 4096 * 1024,
+            image_min_size: Size { width: 100, height: 100 },
+            image_max_size: Size { width: 5000, height: 5000 },
+            upload_dir: "./tmpsf".to_string(),
+            log_level: "info".to_string(),
+            workers_count: 2,
         }
     }
 }
