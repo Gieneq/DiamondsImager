@@ -1728,6 +1728,7 @@ dependencies = [
  "fast-srgb8",
  "palette_derive",
  "phf",
+ "serde",
 ]
 
 [[package]]

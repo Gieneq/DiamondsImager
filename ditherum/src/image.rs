@@ -222,3 +222,5 @@ fn test_processing_gradient_image() {
     assert_eq!(processing_result.width(), width);
     assert_eq!(processing_result.height(), height);
 }
+
+
