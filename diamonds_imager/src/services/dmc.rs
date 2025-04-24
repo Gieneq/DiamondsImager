@@ -45,11 +45,11 @@ impl Hash for Dmc {
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct PaletteDmc {
-    elements: Vec<Dmc>// TODO consider replacing with HashSet
+    elements: HashSet<Dmc>
 }
 
-impl AsRef<[Dmc]> for PaletteDmc {
-    fn as_ref(&self) -> &[Dmc] {
+impl AsRef<HashSet<Dmc> > for PaletteDmc {
+    fn as_ref(&self) -> &HashSet<Dmc> {
         &self.elements
     }
 }
@@ -57,7 +57,7 @@ impl AsRef<[Dmc]> for PaletteDmc {
 mod io {
     use super::*;
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
     pub struct DmcDataIo {
         pub name: String,
         pub code: String,
@@ -65,7 +65,7 @@ mod io {
     }
     
     #[derive(Debug, Default, Serialize, Deserialize)]
-    pub struct PaletteDmcDataIo(pub Vec<DmcDataIo>);
+    pub struct PaletteDmcDataIo(pub HashSet<DmcDataIo>);
 
     impl From<super::Dmc> for DmcDataIo {
         fn from(value: super::Dmc) -> Self {
@@ -87,7 +87,7 @@ mod io {
             let dmc_vec = value.elements
                 .into_iter()
                 .map(DmcDataIo::from)
-                .collect::<Vec<_>>();
+                .collect();
             PaletteDmcDataIo(dmc_vec)
         }
     }
@@ -136,20 +136,20 @@ impl TryFrom<io::PaletteDmcDataIo> for PaletteDmc {
         let dmc_vec = dmc_vec?;
 
         // Must consist of unique names, codes and colors
-        let unique_codes: HashSet<_> = dmc_vec.iter()
-            .map(|dmc| dmc.code.clone())
-            .collect();
+        let unique_codes = dmc_vec.iter()
+            .map(|dmc| &dmc.code)
+            .collect::<HashSet<_>>();
 
-        let unique_names: HashSet<_> = dmc_vec.iter()
-            .map(|dmc| dmc.name.clone())
-            .collect();
+        let unique_names  = dmc_vec.iter()
+            .map(|dmc| &dmc.name)
+            .collect::<HashSet<_>>();
 
-        let unique_colors: HashSet<_> = dmc_vec.iter().collect();
+        let unique_dmc = dmc_vec.iter().cloned().collect::<HashSet<_>>();
 
-        if unique_codes.len() != unique_names.len() || unique_codes.len() != unique_colors.len(){
+        if unique_codes.len() != unique_names.len() || unique_codes.len() != unique_dmc.len(){
             Err(Self::Error::DmcDataNotUnique)
         } else {
-            Ok(Self { elements: dmc_vec})
+            Ok(Self { elements: unique_dmc})
         }
     }
 }

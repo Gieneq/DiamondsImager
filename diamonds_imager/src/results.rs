@@ -13,7 +13,7 @@ use axum::{
 
 use crate::services::{
     dmc::PaletteDmc, 
-    ImageId
+    ImageId, ImageStorageMeta
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -23,11 +23,6 @@ pub struct UploadImageResult {
     pub height: u32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GetPaletteResult {
-    pub palette: PaletteDmc
-}
-
 impl IntoResponse for UploadImageResult {
     fn into_response(self) -> Response {
         let body = axum::Json(self);
@@ -35,7 +30,19 @@ impl IntoResponse for UploadImageResult {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetPaletteResult {
+    pub palette: PaletteDmc
+}
+
 impl IntoResponse for GetPaletteResult {
+    fn into_response(self) -> Response {
+        let body = axum::Json(self);
+        (StatusCode::OK, body).into_response()
+    }
+}
+
+impl IntoResponse for ImageStorageMeta {
     fn into_response(self) -> Response {
         let body = axum::Json(self);
         (StatusCode::OK, body).into_response()

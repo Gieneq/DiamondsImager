@@ -14,6 +14,7 @@ use crate::errors::{
     UploadImageError
 };
 use crate::results::{GetPaletteResult, UploadImageResult};
+use crate::services::{ImageId, ImageStorageMeta};
 
 pub async fn overall_status() -> Html<&'static str> {
     Html("<h1>Diamonds imager is running!</h1>")
@@ -55,6 +56,22 @@ pub async fn upload_image(
     let id = image_storage_service_guard.insert_image(uploaded_filename, image)?;
 
     Ok(UploadImageResult { id, width, height })
+}
+
+pub async fn get_image_meta(
+    extract::State(app_data): extract::State<Arc<AppData>>,
+    extract::Path(id): extract::Path<ImageId>
+) -> Result<ImageStorageMeta, AppError> {
+    let image_storage_service_guard = app_data.image_storage_service.lock().await;
+    image_storage_service_guard.get_image_meta(&id).map_err(AppError::from)
+}
+
+pub async fn delete_image(
+    extract::State(app_data): extract::State<Arc<AppData>>,
+    extract::Path(id): extract::Path<ImageId>
+) -> Result<(), AppError> {
+    let mut image_storage_service_guard = app_data.image_storage_service.lock().await;
+    image_storage_service_guard.remove_image(&id).map_err(AppError::from)
 }
 
 pub async fn get_full_dmc_palette(

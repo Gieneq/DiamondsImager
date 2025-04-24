@@ -29,20 +29,20 @@ Rust & Axum web app to process images into Diamond Painting projects ready to be
   - Request preview
   - Generate final PDF
 
-## Endpoints idea
-| Method | Route | Effect |
-|---|---|---|
-| POST | /image | Upload image obtain UUID |
-| GET | /image/{uuid} | Get image metadata (e.g., upload time, resolution) |
-| DELETE | 	/image/{uuid} | Delete uploaded image manually |
-| GET | /palette/dmc | Get full DMC list |
-| GET | /palette/auto/{uuid} | Get auto-generated palette subset based on image |
-| POST | /palette/custom/{uuid} | Submit a custom palette (client-chosen subset) |
-| POST | /image/{uuid}/transform | Crop/rotate/adjust brightness/contrast |
-| GET |	/preview/{uuid} | Generate and return a preview image (e.g., PNG/JPEG) |
-| POST | /pdf/{uuid} | Generate and return the final printable PDF |
-| GET | /pdf/{uuid} | 	Download the generated PDF |
-| GET | /status/{uuid} | 	Check processing status (useful for async steps) |
+## Endpoints
+| Method | Route | Effect | Implemented |
+|---|---|---|---|
+| POST | /image | Upload image obtain UUID | Y |
+| GET | /image/{uuid} | Get image metadata (e.g., upload time, resolution) | n |
+| DELETE | 	/image/{uuid} | Delete uploaded image manually | n |
+| GET | /palette/dmc | Get full DMC list | Y |
+| GET | /palette/auto/{uuid} | Get auto-generated palette subset based on image | n |
+| POST | /palette/custom/{uuid} | Submit a custom palette (client-chosen subset) | n |
+| POST | /image/{uuid}/transform | Crop/rotate/adjust brightness/contrast | n |
+| GET |	/preview/{uuid} | Generate and return a preview image (e.g., PNG/JPEG) | n |
+| POST | /pdf/{uuid} | Generate and return the final printable PDF | n |
+| GET | /pdf/{uuid} | 	Download the generated PDF | n |
+| GET | /status/{uuid} | 	Check processing status (useful for async steps) | n |
 
 ## Todo
 - [x] Proof of concept

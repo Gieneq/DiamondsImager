@@ -13,7 +13,12 @@ use tower_http::trace::{
 };
 
 use crate::{
-    recreate_dir, router, services::{dmc::PaletteDmc, ImageStorageService}, settings::Settings
+    router, 
+    services::{
+        dmc::PaletteDmc, 
+        ImageStorageService
+    }, 
+    settings::Settings
 };
 
 #[derive(Debug)]
