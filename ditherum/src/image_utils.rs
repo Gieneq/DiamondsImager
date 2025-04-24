@@ -1,4 +1,11 @@
-use crate::palette_utils::{self, color_manip, PaletteSrgb};
+use crate::palette_utils::{
+    self, 
+    color_manip::{
+        self, 
+        mix_rgb_colors
+    }, 
+    PaletteSrgb
+};
 
 /// Generates a horizontal gradient image.
 /// 
@@ -23,7 +30,7 @@ pub fn generate_gradient_image(
 
     for x in 0..width {
         let mix_factor = (x as f32) / (width - 1) as f32;
-        let pixel_color = super::color::manip::mix_rgb_colors(mix_factor, from_color, to_color);
+        let pixel_color = mix_rgb_colors(mix_factor, from_color, to_color);
         (0..height).for_each(|y| {
             *img.get_pixel_mut(x, y) = pixel_color;
         });

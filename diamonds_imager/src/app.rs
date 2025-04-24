@@ -4,8 +4,6 @@ use std::{
     sync::Arc
 };
 
-use diamonds_gen::dmc::PaletteDmc;
-
 use tokio::sync::Mutex;
 use tower_http::trace::{
     DefaultMakeSpan, 
@@ -15,7 +13,7 @@ use tower_http::trace::{
 };
 
 use crate::{
-    recreate_dir, router, services::ImageStorageService, settings::Settings
+    recreate_dir, router, services::{dmc::PaletteDmc, ImageStorageService}, settings::Settings
 };
 
 #[derive(Debug)]
@@ -23,6 +21,7 @@ pub struct AppData {
     pub image_max_width: u32,
     pub image_max_height: u32,
     pub image_storage_service: tokio::sync::Mutex<ImageStorageService>,
+    pub palette_dmc_full: PaletteDmc,
 }
 
 impl Default for AppData {
@@ -30,7 +29,8 @@ impl Default for AppData {
         Self { 
             image_max_width: 1024, 
             image_max_height: 1024, 
-            image_storage_service: Mutex::new(ImageStorageService::new()) 
+            palette_dmc_full: PaletteDmc::default(),
+            image_storage_service: Mutex::new(ImageStorageService::new())
         }
     }
 }
@@ -73,9 +73,13 @@ impl AppServeHandler {
 }
 
 pub async fn app_serve(settings: Settings) -> Result<AppServeHandler, AppServeError> {
+    let dmc_palette_filepath = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(&settings.dmc_palette_path);
+
+    let palette_dmc_full = PaletteDmc::load_from_file(dmc_palette_filepath).expect("DMC Fullpalette file should exist");
     let app_data = Arc::new(AppData {
         image_max_width: settings.image_max_size.width,
         image_max_height: settings.image_max_size.height,
+        palette_dmc_full,
         ..Default::default()
     });
 

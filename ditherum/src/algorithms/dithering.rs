@@ -1,70 +1,25 @@
-use image::RgbImage;
+use crate::image_utils::{
+    image_rgb_to_matrix_srgb_f32, 
+    matrix_srgb_float_palette_quantization
+};
+
+use crate::palette_utils::color_manip::{
+    srgb_add, 
+    srgb_mul_scalar, 
+    srgb_sub
+};
+
 use crate::palette_utils::PaletteSrgb;
-use crate::{color, palette::PaletteRGB};
+
 use crate::algorithms::kernel;
 
-/// Applies Floyd-Steinberg dithering to an RGB image using a given color palette.
-///
-/// # Parameters
-/// - `source_image`: The input `RgbImage` to be dithered.
-/// - `palette`: A `PaletteRGB` containing the target colors for dithering.
-///
-/// # Returns
-/// - A dithered `RgbImage` that approximates the input image using the specified palette.
-///
-/// # Algorithm Details
-/// The Floyd-Steinberg dithering algorithm works by replacing each pixel with the closest
-/// color from the given palette and then distributing the quantization error to neighboring pixels
-/// using a modified 2x2 kernel:
-///
-/// ```plaintext
-///   (X)  *
-///   *    *   (error distribution)
-/// ```
-pub fn dithering_floyd_steinberg_rgb(source_image: RgbImage, palette: PaletteRGB) -> RgbImage {
-    let (width, height, mut rgb_matrix) = crate::image::manip::rgb_image_to_float_srgb_vec(source_image);
-    let srgb_palette = palette.clone().to_srgb();
-
-    kernel::apply_2x2_kernel_processing(&mut rgb_matrix, |kernel| {
-        let closest_tl_color = color::manip::find_closest_srgb_color(kernel.tl , &srgb_palette);
-        let quant_error = color::manip::srgb_sub(kernel.tl, &closest_tl_color);
-        *kernel.tl = closest_tl_color;
-    
-        // Spread quantisation error over remaining 3 pixels
-        // Keep errors weights low to prevent saturation
-        let (err_weight_tr, err_weight_bl, err_weight_br) = (
-            1.5 / 18.0,
-            2.5 / 18.0,
-            4.2 / 18.0,
-        );
-    
-        *kernel.tr = color::manip::srgb_add(
-            kernel.tr, 
-            &color::manip::srgb_mul_scalar(&quant_error, err_weight_tr)
-        );
-        *kernel.bl = color::manip::srgb_add(
-            kernel.bl, 
-            &color::manip::srgb_mul_scalar(&quant_error, err_weight_bl)
-        );
-        *kernel.br = color::manip::srgb_add(
-            kernel.br, 
-            &color::manip::srgb_mul_scalar(&quant_error, err_weight_br)
-        );
-    });
-
-    crate::image::manip::srgb_vec_to_rgb_image_using_palette(width, height, rgb_matrix, &palette)
-}
-
-
-
-
 pub fn dithering_floyd_steinberg_srgb(source_image: image::RgbImage, palette_srgb_u8: PaletteSrgb<u8>) -> image::RgbImage {
-    let mut matrix_float_srgb = crate::image_utils::image_rgb_to_matrix_srgb_f32(&source_image);
+    let mut matrix_float_srgb = image_rgb_to_matrix_srgb_f32(&source_image);
     let palette_srgb_float = PaletteSrgb::<f32>::from(&palette_srgb_u8);
 
     kernel::apply_2x2_kernel_processing(&mut matrix_float_srgb, |kernel| {
         let closest_tl_color = palette_srgb_float.find_closest(*kernel.tl);
-        let quant_error = color::manip::srgb_sub(kernel.tl, &closest_tl_color);
+        let quant_error = srgb_sub(kernel.tl, &closest_tl_color);
         *kernel.tl = closest_tl_color;
         
         // Spread quantisation error over remaining 3 pixels
@@ -75,19 +30,19 @@ pub fn dithering_floyd_steinberg_srgb(source_image: image::RgbImage, palette_srg
             4.2 / 18.0,
         );
     
-        *kernel.tr = color::manip::srgb_add(
+        *kernel.tr = srgb_add(
             kernel.tr, 
-            &color::manip::srgb_mul_scalar(&quant_error, err_weight_tr)
+            &srgb_mul_scalar(&quant_error, err_weight_tr)
         );
-        *kernel.bl = color::manip::srgb_add(
+        *kernel.bl = srgb_add(
             kernel.bl, 
-            &color::manip::srgb_mul_scalar(&quant_error, err_weight_bl)
+            &srgb_mul_scalar(&quant_error, err_weight_bl)
         );
-        *kernel.br = color::manip::srgb_add(
+        *kernel.br = srgb_add(
             kernel.br, 
-            &color::manip::srgb_mul_scalar(&quant_error, err_weight_br)
+            &srgb_mul_scalar(&quant_error, err_weight_br)
         );
     });
 
-    crate::image_utils::matrix_srgb_float_palette_quantization(&matrix_float_srgb, &palette_srgb_u8)
+    matrix_srgb_float_palette_quantization(&matrix_float_srgb, &palette_srgb_u8)
 }

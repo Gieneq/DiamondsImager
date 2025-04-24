@@ -13,6 +13,7 @@ pub struct Settings {
     pub image_max_size: Size<u32>,
     pub log_level: String,
     pub workers_count: usize,
+    pub dmc_palette_path: String,
     // max processings count, service busy
 }
 
@@ -53,6 +54,7 @@ impl Settings {
             image_max_size: load_size_u32("IMG_MAX_WIDTH", "IMG_MAX_HEIGHT"),
             log_level: dotenv::var("LOG_LEVEL").unwrap_or("info".to_string()),
             workers_count: load_setting_u16("WORKERS_COUNT") as usize,
+            dmc_palette_path: load_setting_string("DMC_PALETTE_PATH"),
         }
     }
 }
@@ -67,6 +69,7 @@ impl Default for Settings {
             image_max_size: Size { width: 5000, height: 5000 },
             log_level: "info".to_string(),
             workers_count: 2,
+            dmc_palette_path: "./res/palette_dmc_full.json".to_string(),
         }
     }
 }

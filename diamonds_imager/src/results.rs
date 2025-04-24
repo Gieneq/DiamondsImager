@@ -1,5 +1,3 @@
-use diamonds_gen::dmc::PaletteDmcData;
-
 use serde::{
     Deserialize, 
     Serialize
@@ -13,7 +11,10 @@ use axum::{
     }
 };
 
-use crate::services::ImageId;
+use crate::services::{
+    dmc::PaletteDmc, 
+    ImageId
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UploadImageResult {
@@ -23,15 +24,9 @@ pub struct UploadImageResult {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PaletteResult(pub PaletteDmcData);
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ProcessingStatus {
-
+pub struct GetPaletteResult {
+    pub palette: PaletteDmc
 }
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ProcesingsResult(pub Vec<ProcessingStatus>);
 
 impl IntoResponse for UploadImageResult {
     fn into_response(self) -> Response {
@@ -40,7 +35,7 @@ impl IntoResponse for UploadImageResult {
     }
 }
 
-impl IntoResponse for PaletteResult {
+impl IntoResponse for GetPaletteResult {
     fn into_response(self) -> Response {
         let body = axum::Json(self);
         (StatusCode::OK, body).into_response()

@@ -1,3 +1,5 @@
+pub mod dmc;
+
 use std::{collections::HashMap, path::Path};
 
 pub type ImageId = String;
@@ -20,8 +22,8 @@ pub type ImageId = String;
 
 #[derive(Debug)]
 pub struct ImageStorageElement {
-    image: image::RgbImage,
-    filename: String,
+    pub image: image::RgbImage,
+    pub filename: String,
     // processing status
 }
 
@@ -37,6 +39,9 @@ pub enum ImageStorageServiceError {
     
     #[error("FilenameExtensionMissing")]
     FilenameExtensionMissing,
+
+    #[error("ImageNotFound")]
+    ImageNotFound,
 }
 
 impl ImageStorageService {
@@ -70,5 +75,9 @@ impl ImageStorageService {
         });
 
         Ok(id)
+    }
+
+    pub fn access_image(&self, id: &ImageId) -> Result<&ImageStorageElement, ImageStorageServiceError> {
+        self.images.get(id).ok_or(ImageStorageServiceError::ImageNotFound)
     }
 }

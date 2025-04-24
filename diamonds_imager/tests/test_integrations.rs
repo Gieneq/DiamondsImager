@@ -4,7 +4,8 @@ use std::{
 };
 
 use diamonds_imager::app::app_serve;
-use diamonds_imager::results::UploadImageResult;
+use diamonds_imager::results::{GetPaletteResult, UploadImageResult};
+use diamonds_imager::services::dmc::PaletteDmc;
 use diamonds_imager::settings::Settings;
 use reqwest::Client;
 
@@ -28,6 +29,13 @@ async fn upload_test_image(root_url: &str, client: &Client, filename: &str, endp
         .multipart(form)
         .send()
         .await
+}
+
+async fn get_test_full_dmc_palette(root_url: &str, client: &Client) -> Result<GetPaletteResult, reqwest::Error> {
+    let response = client.get(format!("{root_url}/api/palette/dmc"))
+        .send()
+        .await?;
+    response.json().await
 }
 
 async fn upload_basic_good_image(root_url: &str, client: &Client) -> Result<UploadImageResult, reqwest::Error> {
@@ -184,6 +192,20 @@ mod test_uploading_image {
             assert_ne!(upload_img_result1.id, upload_img_result2.id);
             assert_eq!(upload_img_result1.width, upload_img_result2.width);
             assert_eq!(upload_img_result1.height, upload_img_result2.height);
+        }).await;
+    }
+}
+
+#[cfg(test)]
+mod test_palette {
+    use crate::*;
+
+    #[tokio::test]
+    async fn test_get_full_dmc_palette() {
+        setup_server_environment_with_client( |root_url, client| async move {
+            let response_palette_dmc = get_test_full_dmc_palette(&root_url, &client).await.unwrap();
+            
+            assert!(!response_palette_dmc.palette.as_ref().is_empty());
         }).await;
     }
 }

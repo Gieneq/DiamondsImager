@@ -24,10 +24,10 @@ uuid = { version = "1.12.1", features = ["v4", "fast-rng", "macro-diagnostics"] 
 
 thiserror = "2.0.12"
 image = "0.25.5"
+palette = { version = "0.7.6", features = ["std", "serializing"] }
 
 tempfile = "3.16.0"
 
 ctrlc = "3.4.6"
 
 ditherum = { version = "*", path = "../ditherum" }
-diamonds_gen = { version = "*", path = "../diamonds_gen" }

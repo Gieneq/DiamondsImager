@@ -1,7 +1,14 @@
 use std::collections::HashMap;
 
-use palette::{color_difference::EuclideanDistance, Srgb};
-use serde::{Deserialize, Serialize};
+use palette::{
+    color_difference::EuclideanDistance, 
+    Srgb
+};
+
+use serde::{
+    Deserialize, 
+    Serialize
+};
 
 // pub trait AllowedChannelType {}
 
@@ -116,6 +123,52 @@ pub mod color_manip {
 
     pub fn srgb_u8_to_rgb_u8(src: &palette::Srgb<u8>) -> image::Rgb<u8> {
         image::Rgb([src.red, src.green, src.blue])
+    }
+
+    pub fn srgb_add(left: &palette::Srgb, right: &palette::Srgb) -> palette::Srgb {
+        palette::Srgb::new(
+            left.red + right.red,
+            left.green + right.green,
+            left.blue + right.blue
+        )
+    }
+
+    pub fn srgb_sub(left: &palette::Srgb, right: &palette::Srgb) -> palette::Srgb {
+        palette::Srgb::new(
+            left.red - right.red,
+            left.green - right.green,
+            left.blue - right.blue
+        )
+    }
+
+    pub fn srgb_mul_scalar(left: &palette::Srgb, scalar: f32) -> palette::Srgb {
+        palette::Srgb::new(
+            left.red * scalar,
+            left.green * scalar,
+            left.blue * scalar
+        )
+    }
+
+    pub fn mix_color_channel(
+        mix_factor: f32, 
+        from_value: u8,
+        to_value: u8
+    ) -> u8 {
+        let mix_factor = mix_factor.clamp(0.0, 1.0);
+        let mixed_value = (1.0 - mix_factor) * (from_value as f32) + mix_factor * (to_value as f32);
+        mixed_value.round().clamp(0.0, 255.0) as u8 
+    }
+
+    pub fn mix_rgb_colors(
+        mix_factor: f32, 
+        from_color: image::Rgb<u8>,
+        to_color: image::Rgb<u8>
+    ) -> image::Rgb<u8> {
+        image::Rgb([
+            mix_color_channel(mix_factor, from_color[0], to_color[0]),
+            mix_color_channel(mix_factor, from_color[1], to_color[1]),
+            mix_color_channel(mix_factor, from_color[2], to_color[2])
+        ])
     }
 }
 
