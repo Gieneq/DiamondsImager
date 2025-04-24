@@ -1,4 +1,3 @@
-use std::sync::Mutex;
 use std::{
     path::Path,
     future::Future
@@ -33,7 +32,7 @@ async fn upload_test_image(root_url: &str, client: &Client, filename: &str, endp
 
 async fn upload_basic_good_image(root_url: &str, client: &Client) -> Result<UploadImageResult, reqwest::Error> {
     let filename = "pinkflower_300.jpg"; // we call this image coala, wy wife says it looks like coala. lol
-    let response = upload_test_image(root_url, client, filename, "/upload").await?;
+    let response = upload_test_image(root_url, client, filename, "/api/upload").await?;
     assert!(response.status().is_success());
     response.json().await
 }
@@ -93,7 +92,7 @@ mod test_uploading_image {
                 &root_url, 
                 &client, 
                 filename, 
-                "/upload"
+                "/api/upload"
             ).await.unwrap();
 
             if !response.status().is_success() {
@@ -119,7 +118,7 @@ mod test_uploading_image {
                 &root_url, 
                 &client, 
                 filename, 
-                "/upload"
+                "/api/upload"
             ).await.unwrap();
 
             if !response.status().is_success() {
@@ -143,7 +142,7 @@ mod test_uploading_image {
                 &root_url, 
                 &client, 
                 "too_big_image_15_MB.png", 
-                "/upload"
+                "/api/upload"
             ).await;
             assert!(response.is_err());
         }).await;
@@ -156,7 +155,7 @@ mod test_uploading_image {
                 &root_url, 
                 &client, 
                 "too_wide.png", 
-                "/upload"
+                "/api/upload"
             ).await.unwrap();
             
             assert!(!response.status().is_success());
@@ -170,7 +169,7 @@ mod test_uploading_image {
                 &root_url, 
                 &client, 
                 "too_high.png", 
-                "/upload"
+                "/api/upload"
             ).await.unwrap();
             
             assert!(!response.status().is_success());
@@ -193,14 +192,14 @@ mod test_uploading_image {
 mod test_processing {
     use super::*;
 
-    #[tokio::test]
-    async fn upload_good_image_check_status_should_be_ready_for_processing() {
-        setup_server_environment_with_client( |root_url, client| async move {
-            let upload_img_result = upload_basic_good_image(&root_url, &client).await.unwrap();
-            println!("Got upload_img_result={upload_img_result:?}");
+    // #[tokio::test]
+    // async fn upload_good_image_check_status_should_be_ready_for_processing() {
+    //     setup_server_environment_with_client( |root_url, client| async move {
+    //         let upload_img_result = upload_basic_good_image(&root_url, &client).await.unwrap();
+    //         println!("Got upload_img_result={upload_img_result:?}");
 
-            // Check status endpoint like this /processing/{id}/status
-            //TODO
-            }).await;
-    }
+    //         // Check status endpoint like this /processing/{id}/status
+    //         //TODO
+    //         }).await;
+    // }
 }

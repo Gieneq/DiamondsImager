@@ -18,8 +18,8 @@ use crate::services::ImageId;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UploadImageResult {
     pub id: ImageId,
-    pub width: usize,
-    pub height: usize,
+    pub width: u32,
+    pub height: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -32,12 +32,6 @@ pub struct ProcessingStatus {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ProcesingsResult(pub Vec<ProcessingStatus>);
-
-impl UploadImageResult {
-    pub fn new(id: String, width: usize, height: usize) -> Self {
-        Self { id, width, height }
-    }
-}
 
 impl IntoResponse for UploadImageResult {
     fn into_response(self) -> Response {

@@ -6,6 +6,7 @@ use std::{
 
 use diamonds_gen::dmc::PaletteDmc;
 
+use tokio::sync::Mutex;
 use tower_http::trace::{
     DefaultMakeSpan, 
     DefaultOnRequest, 
@@ -14,15 +15,24 @@ use tower_http::trace::{
 };
 
 use crate::{
-    recreate_dir, router, settings::Settings
+    recreate_dir, router, services::ImageStorageService, settings::Settings
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AppData {
-    pub uplad_dir: PathBuf,
-    pub image_max_width: usize,
-    pub image_max_height: usize,
-    pub dmc_full_palette: PaletteDmc,
+    pub image_max_width: u32,
+    pub image_max_height: u32,
+    pub image_storage_service: tokio::sync::Mutex<ImageStorageService>,
+}
+
+impl Default for AppData {
+    fn default() -> Self {
+        Self { 
+            image_max_width: 1024, 
+            image_max_height: 1024, 
+            image_storage_service: Mutex::new(ImageStorageService::new()) 
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -63,16 +73,10 @@ impl AppServeHandler {
 }
 
 pub async fn app_serve(settings: Settings) -> Result<AppServeHandler, AppServeError> {
-    let upload_dir_path = PathBuf::from(&settings.upload_dir);
-    
-    recreate_dir(&upload_dir_path).await?;
-
-    let dmc_full_palette = PaletteDmc::load_dmc_palette().unwrap();
     let app_data = Arc::new(AppData {
-        uplad_dir: upload_dir_path,
-        image_max_width: settings.image_max_size.width as usize,
-        image_max_height: settings.image_max_size.height as usize,
-        dmc_full_palette
+        image_max_width: settings.image_max_size.width,
+        image_max_height: settings.image_max_size.height,
+        ..Default::default()
     });
 
     let app = router::get_router(settings.image_max_bytes, app_data.clone())

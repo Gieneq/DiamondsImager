@@ -7,10 +7,15 @@ use axum::{
     }
 };
 
+use crate::services::ImageStorageServiceError;
+
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
     #[error(transparent)]
     UploadImage(#[from] UploadImageError),
+
+    #[error(transparent)]
+    ImageStorageServiceError(#[from] ImageStorageServiceError),
     
     #[error(transparent)]
     PaletteExtract(#[from] PaletteExtractError),
@@ -21,16 +26,19 @@ pub enum UploadImageError {
     #[error("ImageEmpty")]
     ImageEmpty,
 
+    #[error("FilenameEmpty")]
+    FilenameEmpty,
+
     #[error("Image too wide max={max}, actual={actual}")]
     ImageTooWide {
-        max: usize,
-        actual: usize,
+        max: u32,
+        actual: u32,
     },
 
     #[error("Image too high max={max}, actual={actual}")]
     ImageTooHigh {
-        max: usize,
-        actual: usize,
+        max: u32,
+        actual: u32,
     },
 
     #[error("FilenameMissing")]
@@ -44,6 +52,9 @@ pub enum UploadImageError {
 
     #[error("FileIOFailed, reason='{0}'")]
     FileIOFailed(#[from] tokio::io::Error),
+
+    #[error("ImageError, reason='{0}'")]
+    ImageError(#[from] image::ImageError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -60,6 +71,7 @@ impl IntoResponse for AppError {
         let status_code = match &self {
             Self::UploadImage(_) => StatusCode::BAD_REQUEST,
             Self::PaletteExtract(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::ImageStorageServiceError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
         let body = axum::Json(serde_json::json!({ "error" : self.to_string()}));
