@@ -4,9 +4,7 @@ use std::{
 };
 
 use diamonds_imager::app::app_serve;
-use diamonds_imager::errors::AppError;
 use diamonds_imager::results::{GetPaletteResult, UploadImageResult};
-use diamonds_imager::services::dmc::PaletteDmc;
 use diamonds_imager::services::{ImageId, ImageStorageMeta};
 use diamonds_imager::settings::Settings;
 use reqwest::Client;

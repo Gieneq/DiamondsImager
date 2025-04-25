@@ -1,26 +1,17 @@
 pub mod dmc;
+pub mod processing;
 
-use std::{collections::HashMap, path::Path, time::Instant};
+use std::{
+    collections::HashMap, 
+    path::Path, sync::Arc
+};
 
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize, 
+    Serialize
+};
 
 pub type ImageId = String;
-
-// pub struct ProcessingStatus {
-
-// }
-
-// pub struct ProcessingsIndex {
-//     pub index: HashMap<ImageId, ProcessingStatus>,
-// }
-
-// fn access_image_by_id(id: &ImageId) -> () {
-    
-// }
-
-// pub fn is_image_id_present(id: &ImageId) -> bool {
-
-// }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ImageStorageMeta {
@@ -31,7 +22,7 @@ pub struct ImageStorageMeta {
 
 #[derive(Debug, Clone)]
 pub struct ImageStorageElement {
-    pub image: image::RgbImage,
+    pub image: Arc<image::RgbImage>,
     pub meta: ImageStorageMeta,
 }
 
@@ -80,7 +71,7 @@ impl ImageStorageService {
         let time_now = chrono::Utc::now();
 
         self.images.insert(id.clone(), ImageStorageElement {
-            image: img.into(),
+            image: Arc::new(img.into()),
             meta: ImageStorageMeta { 
                 filename, 
                 upload_time: time_now, 
@@ -109,3 +100,4 @@ impl ImageStorageService {
         }
     }
 }
+

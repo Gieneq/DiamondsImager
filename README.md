@@ -30,19 +30,22 @@ Rust & Axum web app to process images into Diamond Painting projects ready to be
   - Generate final PDF
 
 ## Endpoints
-| Method | Route | Effect | Implemented |
-|---|---|---|---|
-| POST | /image | Upload image obtain UUID | Y |
-| GET | /image/{uuid} | Get image metadata (e.g., upload time, resolution) | n |
-| DELETE | 	/image/{uuid} | Delete uploaded image manually | n |
-| GET | /palette/dmc | Get full DMC list | Y |
-| GET | /palette/auto/{uuid} | Get auto-generated palette subset based on image | n |
-| POST | /palette/custom/{uuid} | Submit a custom palette (client-chosen subset) | n |
-| POST | /image/{uuid}/transform | Crop/rotate/adjust brightness/contrast | n |
-| GET |	/preview/{uuid} | Generate and return a preview image (e.g., PNG/JPEG) | n |
-| POST | /pdf/{uuid} | Generate and return the final printable PDF | n |
-| GET | /pdf/{uuid} | 	Download the generated PDF | n |
-| GET | /status/{uuid} | 	Check processing status (useful for async steps) | n |
+| Method | Route                       | Effect | Implemented |
+|--------|-----------------------------|---|---|
+| POST   | /api/image                  | Upload image obtain UUID | Y |
+| GET    | /api/image/{uuid}           | Get image metadata (e.g., upload time, resolution) | Y |
+| DELETE | /api/image/{uuid}           | Delete uploaded image manually | Y |
+| GET    | /api/palette/dmc            | Get full DMC list | Y |
+| POST   | /api/palette/extract/{uuid} | Start palette extraction from image if not busy | n |
+| GET    | /api/palette/extract/{uuid} | Get palette extraction from image if ready | n |
+| POST   | /api/preview/{uuid}         | Start generating preview image PNG if not busy | n |
+| GET    | /api/preview/{uuid}         | Download preview image PNG if ready | n |
+| POST   | /api/pdf/{uuid}             | Start generating printable PDF if not busy | n |
+| GET    | /api/pdf/{uuid}             | 	Download the generated PDF if ready | n |
+| GET    | /api/processing/{uuid}      | 	Check processing status (useful for async steps) | n |
+| POST   | /api/image/{uuid}/transform | Crop/rotate/adjust brightness/contrast | ? |
+
+**Note**: palette will be attached in query parameters while requesting preview or PDF.
 
 ## Todo
 - [x] Proof of concept

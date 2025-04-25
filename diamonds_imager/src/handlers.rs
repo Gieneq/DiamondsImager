@@ -13,8 +13,19 @@ use crate::errors::{
     AppError, 
     UploadImageError
 };
-use crate::results::{GetPaletteResult, UploadImageResult};
-use crate::services::{ImageId, ImageStorageMeta};
+use crate::requests::ExtractQueryMaxColorsCount;
+use crate::results::{
+    FinishPaletteExtractionResult, 
+    GetPaletteResult, 
+    StartPaletteExtractionResult, 
+    UploadImageResult
+};
+
+use crate::services::processing::worker::Work;
+use crate::services::{
+    ImageId, 
+    ImageStorageMeta
+};
 
 pub async fn overall_status() -> Html<&'static str> {
     Html("<h1>Diamonds imager is running!</h1>")
@@ -78,6 +89,38 @@ pub async fn get_full_dmc_palette(
     extract::State(app_data): extract::State<Arc<AppData>>
 ) -> GetPaletteResult { 
     GetPaletteResult {
-        palette: app_data.palette_dmc_full.clone()
+        palette: app_data.palette_dmc_full.as_ref().clone()
     }
+}
+
+pub async fn start_extracting_dmc_palette(
+    extract::State(app_data): extract::State<Arc<AppData>>,
+    extract::Path(id): extract::Path<ImageId>,
+    extract::Query(query_max_colors): extract::Query<ExtractQueryMaxColorsCount>,
+) -> Result<(), AppError> {
+    let cloned_image = {
+        let image_storage_service_guard = app_data.image_storage_service.lock().await;
+        let element = image_storage_service_guard.access_image(&id)?;
+        element.image.clone()
+    };
+
+    let processing_runner_service_guard = app_data.processing_runner_service.lock().await;
+    let start_result = processing_runner_service_guard.enque_processing(Work::PaletteExtract {
+        palette_dmc: app_data.palette_dmc_full.clone(),
+        src_image: cloned_image, 
+        max_colors: query_max_colors.max_colors
+    }).await;
+
+    start_result.map_err(AppError::from)
+}
+
+pub async fn poll_finish_extracting_dmc_palette(
+    extract::State(app_data): extract::State<Arc<AppData>>,
+    extract::Path(id): extract::Path<ImageId>
+) -> Result<FinishPaletteExtractionResult, AppError> {
+    // let mut image_storage_service_guard = app_data.image_storage_service.lock().await;
+    // // TODO consider offloading to blocking, can be CPU intensive
+    // let palette = image_storage_service_guard.get_palette_from_image(&id)?;
+    // Ok(GetPaletteResult { palette })
+    todo!()
 }
