@@ -48,6 +48,7 @@ pub struct WorkDispatcher {
     processings_queue_tx: tokio::sync::mpsc::Sender<WorkOrder>,
     dipatcher_task: tokio::task::JoinHandle<()>,
     orders_results: Arc<tokio::sync::Mutex<HashMap<WorkId, WorkResult>>>,
+    on_result_notify: Arc<tokio::sync::Notify>,
 }
 
 impl WorkDispatcher {
@@ -119,6 +120,9 @@ impl WorkDispatcher {
         let orders_results = Arc::new(tokio::sync::Mutex::new(HashMap::new()));
         let orders_results_shared = orders_results.clone();
 
+        let on_result_notify = Arc::new(tokio::sync::Notify::new());
+        let on_result_notify_shared = on_result_notify.clone();
+
         let dipatcher_task = tokio::task::spawn(async move {
             // Unique work_id
             let mut next_unique_work_id = 0;
@@ -149,7 +153,10 @@ impl WorkDispatcher {
                             }
                         },
                         work_result = work_result_rx.recv() => match work_result {
-                            Some(work_result) => Self::process_collected_result(work_result, &orders_results_shared).await,
+                            Some(work_result) => {
+                                Self::process_collected_result(work_result, &orders_results_shared).await;
+                                on_result_notify_shared.notify_waiters();
+                            },
                             None => {
                                 tracing::warn!("Unexpected workers closing!");
                                 break;
@@ -169,7 +176,8 @@ impl WorkDispatcher {
         Self { 
             processings_queue_tx: work_orders_queue_tx, 
             dipatcher_task,
-            orders_results
+            orders_results,
+            on_result_notify
         }
     }
 
@@ -197,6 +205,7 @@ impl WorkDispatcher {
 
     /// Tries to retrieve the result for a given work ID.
     /// If a timeout is specified, waits for the result up to the given duration.
+    /// Awaiting results is event driven by receiving notification from dispatcher task.
     pub async fn get_work_result(&self, work_id: WorkId, timeout_duration: Option<Duration>) -> Result<WorkResult, ProcessingError> {
         if let Some(timeout) = timeout_duration {
             let deadline = tokio::time::Instant::now() + timeout;
@@ -209,12 +218,17 @@ impl WorkDispatcher {
                     }
                 }
 
-                if tokio::time::Instant::now() >= deadline {
+                let now = tokio::time::Instant::now();
+
+                if now >= deadline {
                     return Err(ProcessingError::NotAvailable); // timeout hit
                 }
+
+                let remaining_time = deadline - now;
         
-                // Sleep a short time before re-checking
-                tokio::time::sleep(Duration::from_millis(10)).await;
+                if let Err(_) = tokio::time::timeout(remaining_time, self.on_result_notify.notified()).await {
+                    return Err(ProcessingError::NotAvailable);
+                }
             }
         } else {
             // Instant try
@@ -320,4 +334,20 @@ mod tests {
         dispatcher.shutdown().await;
     }
 
+    #[tokio::test]
+    async fn test_dispatcher_work_not_ready_yet() {
+        init_tracing();
+
+        let dispatcher = WorkDispatcher::new();
+
+        let work_id = dispatcher.enque_work(Work::TestWork { delay: Duration::from_millis(30) }).await.expect("Failed to enqueue work");
+        
+        let work_await_result = dispatcher.get_work_result(work_id, Some(Duration::from_millis(10))).await;
+        assert!(matches!(work_await_result, Err(ProcessingError::NotAvailable)));
+        
+        let work_await_result = dispatcher.get_work_result(work_id, Some(Duration::from_millis(50))).await;
+        assert!(matches!(work_await_result, Ok(WorkResult::TestWork)));
+        
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
 }
