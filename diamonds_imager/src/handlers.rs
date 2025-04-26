@@ -105,13 +105,14 @@ pub async fn start_extracting_dmc_palette(
     };
 
     let processing_runner_service_guard = app_data.processing_runner_service.lock().await;
-    let start_result = processing_runner_service_guard.enque_processing(Work::PaletteExtract {
+    let start_result = processing_runner_service_guard.enque_work(Work::PaletteExtract {
         palette_dmc: app_data.palette_dmc_full.clone(),
         src_image: cloned_image, 
         max_colors: query_max_colors.max_colors
     }).await;
 
-    start_result.map_err(AppError::from)
+    let work_id = start_result.map_err(AppError::from);
+    Ok(())
 }
 
 pub async fn poll_finish_extracting_dmc_palette(

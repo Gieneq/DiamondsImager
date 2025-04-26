@@ -15,7 +15,7 @@ use tower_http::trace::{
 use crate::{
     router, 
     services::{
-        dmc::PaletteDmc, processing::ProcessingRunner, ImageStorageService
+        dmc::PaletteDmc, processing::WorkDispatcher, ImageStorageService
     }, 
     settings::Settings
 };
@@ -26,7 +26,7 @@ pub struct AppData {
     pub image_max_height: u32,
     pub palette_dmc_full: Arc<PaletteDmc>,
     pub image_storage_service: tokio::sync::Mutex<ImageStorageService>,
-    pub processing_runner_service: tokio::sync::Mutex<ProcessingRunner>,
+    pub processing_runner_service: tokio::sync::Mutex<WorkDispatcher>,
 }
 
 impl Default for AppData {
@@ -36,7 +36,7 @@ impl Default for AppData {
             image_max_height: 1024, 
             palette_dmc_full: Arc::new(PaletteDmc::default()),
             image_storage_service: Mutex::new(ImageStorageService::new()),
-            processing_runner_service: Mutex::new(ProcessingRunner::new()),
+            processing_runner_service: Mutex::new(WorkDispatcher::new()),
         }
     }
 }

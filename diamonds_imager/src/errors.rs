@@ -82,6 +82,7 @@ impl IntoResponse for AppError {
             },
             Self::ProcessingError(e) => match e {
                 ProcessingError::Busy => StatusCode::PROCESSING,
+                ProcessingError::NotAvailable => StatusCode::PROCESSING,
                 ProcessingError::ServiceFailed => StatusCode::INTERNAL_SERVER_ERROR,
             },
             Self::ImageStorageServiceError(e) => match e {

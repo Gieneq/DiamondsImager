@@ -11,7 +11,7 @@ use crate::services::{
     processing::image_manip::image_dither_using_dmc_palette
 };
 
-const WORKER_QUEUE_CAP: usize = 4;
+const WORKER_INPUT_QUEUE_CAP: usize = 8;
 
 /// Identifier for a piece of work. A dispatcher of work 
 /// should make them unique to easy distinguish of workers.
@@ -127,9 +127,15 @@ pub struct WorkResultWrapped {
 /// and sends back `WorkResultWrapped` messages.
 #[derive(Debug)]
 pub struct Worker {
+    pub id: u32,
     pub task: tokio::task::JoinHandle<()>,
     pub work_tx: tokio::sync::mpsc::Sender<WorkWrapped>,
-    pub work_result_rx: tokio::sync::mpsc::Receiver<WorkResultWrapped>,
+}
+
+impl std::fmt::Display for Worker {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Worker {}", self.id)
+    }
 }
 
 impl Worker {
@@ -169,9 +175,8 @@ impl Worker {
     ///
     /// Spawns a background task that pulls work from the queue,
     /// executes it via `do_work`, and forwards results to the result channel.
-    pub fn new(id: u32) -> Self {
-        let (work_tx, mut work_rx) = tokio::sync::mpsc::channel::<WorkWrapped>(WORKER_QUEUE_CAP);
-        let (work_result_tx, work_result_rx) = tokio::sync::mpsc::channel(WORKER_QUEUE_CAP);
+    pub fn new(id: u32, work_result_tx: tokio::sync::mpsc::Sender<WorkResultWrapped>) -> Self {
+        let (work_tx, mut work_rx) = tokio::sync::mpsc::channel::<WorkWrapped>(WORKER_INPUT_QUEUE_CAP);
 
         let task = tokio::task::spawn(async move {
             // Shutting down signal using `work_rx`
@@ -200,9 +205,9 @@ impl Worker {
         });
 
         Self { 
+            id,
             task, 
-            work_tx,
-            work_result_rx
+            work_tx
         }
     }
 
@@ -212,10 +217,11 @@ impl Worker {
         self.work_tx.try_send(work_wrapped)
     }
 
-    /// Receive the next completed `WorkResultWrapped`.
-    /// Returns `None` if the worker has shut down and all results are drained.
-    pub async fn recv_work_result(&mut self) -> Option<WorkResultWrapped> {
-        self.work_result_rx.recv().await
+    pub async fn shutdown(self) {
+        // Move channels and drop them to notify worker about finishing him
+        drop(self.work_tx);
+        self.task.await.expect("Worker should be shutdown gracefully");
+        tracing::info!("Worker {} shutdown!", self.id);
     }
 }
 
@@ -225,6 +231,8 @@ mod tests_worker {
     use super::*;
     use std::time::Duration;
     use tracing_subscriber;
+    
+    const WORKER_TEST_QUEUE_CAP: usize = 4;
 
     fn init_tracing() {
         let _ = tracing_subscriber::fmt()
@@ -237,12 +245,14 @@ mod tests_worker {
     async fn test_worker_dummy_work() {
         {
             init_tracing();
+
+            let (work_result_tx, mut work_result_rx) = tokio::sync::mpsc::channel(WORKER_TEST_QUEUE_CAP);
             
-            let mut worker = Worker::new(0);
+            let worker = Worker::new(0, work_result_tx);
             let enque_result = worker.try_enque_work(WorkWrapped { id: 12, work: Work::TestWork { delay: Duration::from_millis(500) } });
             assert!(enque_result.is_ok());
 
-            let work_result = worker.recv_work_result().await.unwrap();
+            let work_result = work_result_rx.recv().await.unwrap();
             assert!(matches!(work_result, WorkResultWrapped { id: 12, work_result: WorkResult::TestWork }));
         }
         tokio::time::sleep(Duration::from_millis(10)).await;
@@ -262,7 +272,9 @@ mod tests_worker {
                 image::Rgb([255,0,0]),
             ));
 
-            let mut worker = Worker::new(1);
+            let (work_result_tx, mut work_result_rx) = tokio::sync::mpsc::channel(WORKER_TEST_QUEUE_CAP);
+            
+            let worker = Worker::new(1, work_result_tx);
 
             let work = WorkWrapped {
                 id: 13,
@@ -272,7 +284,7 @@ mod tests_worker {
             let enque_result = worker.try_enque_work(work);
             assert!(enque_result.is_ok());
 
-            let work_result = worker.recv_work_result().await.unwrap();
+            let work_result = work_result_rx.recv().await.unwrap();
             // Etracted colors are hard to predict
             assert!(matches!(work_result, WorkResultWrapped { id: 13, work_result: WorkResult::PaletteExtract { dmc_bom: _ } }));
         }
@@ -291,8 +303,10 @@ mod tests_worker {
                 image::Rgb([0,33,255]),
                 image::Rgb([255,55,0]),
             ));
-
-            let mut worker = Worker::new(2);
+            
+            let (work_result_tx, mut work_result_rx) = tokio::sync::mpsc::channel(WORKER_TEST_QUEUE_CAP);
+            
+            let worker = Worker::new(2, work_result_tx);
 
             let work = WorkWrapped {
                 id: 14,
@@ -302,7 +316,7 @@ mod tests_worker {
             let enque_result = worker.try_enque_work(work);
             assert!(enque_result.is_ok());
 
-            let work_result = worker.recv_work_result().await.unwrap();
+            let work_result = work_result_rx.recv().await.unwrap();
             if let WorkResult::ImageDither { dithered_image, dmc_bom } = work_result.work_result {
                 let pixels_count = dithered_image.width() * dithered_image.height();
                 let diamonds_used_count = dmc_bom.iter().fold(0, |acc, (_, cnt)| acc + cnt);
@@ -318,6 +332,43 @@ mod tests_worker {
             } else {
                 panic!("Bad work result = {work_result:?}")
             }
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+
+    #[tokio::test]
+    async fn test_worker_finishing_before_receiving_work_result() {
+        {
+            init_tracing();
+            
+            let (work_result_tx, _work_result_rx) = tokio::sync::mpsc::channel(WORKER_TEST_QUEUE_CAP);
+            
+            let worker = Worker::new(3, work_result_tx);
+            let enque_result = worker.try_enque_work(WorkWrapped { id: 21, work: Work::TestWork { delay: Duration::from_millis(500) } });
+            assert!(enque_result.is_ok());
+
+            worker.shutdown().await;
+            // LATER: capture if work was done, no matter when worker finish, he should finish its work
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+
+    #[tokio::test]
+    async fn test_worker_finishing_after_receiving_work_result() {
+        {
+            init_tracing();
+            
+            let (work_result_tx, mut work_result_rx) = tokio::sync::mpsc::channel(WORKER_TEST_QUEUE_CAP);
+            
+            let worker = Worker::new(4, work_result_tx);
+            let enque_result = worker.try_enque_work(WorkWrapped { id: 22, work: Work::TestWork { delay: Duration::from_millis(500) } });
+            assert!(enque_result.is_ok());
+
+            let work_result = work_result_rx.recv().await.unwrap();
+            assert!(matches!(work_result, WorkResultWrapped { id: _, work_result: WorkResult::TestWork }));
+            
+            worker.shutdown().await;
+            // LATER: capture if work was done, no matter when worker finish, he should finish its work
         }
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
