@@ -1,18 +1,16 @@
 use std::{
-    collections::{HashMap, HashSet}, 
-    fmt::Debug, 
-    hash::Hash, 
-    io::BufReader, 
-    path::Path
+    collections::{HashMap, HashSet}, fmt::Debug, hash::Hash, io::BufReader, ops::Deref, path::Path
 };
 
-use ditherum::palette_utils::color_manip::rgb_u8_to_srgb_u8;
+use ditherum::palette_utils::{color_manip::{self, rgb_u8_to_srgb_u8}, PaletteSrgb};
 use palette::color_difference::EuclideanDistance;
 
 use serde::{
     Deserialize, 
     Serialize
 };
+
+pub type DmcBom = HashMap<Dmc, u32>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DmcError {
@@ -63,7 +61,38 @@ impl AsRef<HashSet<Dmc> > for PaletteDmc {
     }
 }
 
+impl Deref for PaletteDmc {
+    type Target = HashSet<Dmc>;
+    fn deref(&self) -> &Self::Target {
+        &self.elements
+    }
+}
+
+impl From<&DmcBom> for PaletteDmc {
+    fn from(bom: &DmcBom) -> Self {
+        PaletteDmc { elements: bom.keys().into_iter().cloned().collect() }
+    }
+}
+
 impl PaletteDmc {
+    pub fn load_from_file<P>(filepath: P) -> Result<PaletteDmc, DmcError> 
+    where 
+        P: AsRef<Path> + Debug
+    {
+        let file = std::fs::File::open(&filepath)
+            .inspect_err(|_| {
+                tracing::error!("File not found: '{filepath:?}'");
+            })?;
+        let file_reader = BufReader::new(file);
+        let dmc_palette_data_io: io::PaletteDmcDataIo = serde_json::from_reader(file_reader)?;
+        let dmc_palette = PaletteDmc::try_from(dmc_palette_data_io)?;
+        Ok(dmc_palette)
+    }
+
+    pub fn load_from_file_default() -> Result<PaletteDmc, DmcError> {
+        Self::load_from_file(std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("./res/palette_dmc_full.json"))
+    }
+
     pub fn find_closest_dmc(&self, random_color: palette::Srgb<u8>) -> &Dmc {
         assert!(!self.elements.is_empty());
         let random_color_float = random_color.into_format();
@@ -77,7 +106,7 @@ impl PaletteDmc {
             .expect("At least 1 element was in palette")
     }
 
-    pub fn find_subset_matching_image(&self, image: &image::RgbImage, max_count: Option<usize>) -> HashMap<Dmc, u32> {
+    pub fn find_subset_closest_to_image_pixels(&self, image: &image::RgbImage, max_count: Option<usize>) -> HashMap<Dmc, u32> {
         let mut colors_counts = HashMap::new();
 
         image.enumerate_pixels().for_each(|(_, _, color)| {
@@ -102,6 +131,40 @@ impl PaletteDmc {
         } else {
             colors_counts
         }
+    }
+
+    pub fn find_dmc_by_color(&self, color: &palette::Srgb<u8>) -> Option<&Dmc> {
+        self.elements.iter()
+            .find(|dmc| &dmc.color == color)
+    }
+
+    pub fn find_bom_of_image(&self, src_image: &image::RgbImage) -> (DmcBom, usize) {
+        let mut dmc_bom = HashMap::new();
+        let mut not_mapped_count = 0;
+
+        src_image.enumerate_pixels().for_each(|(_, _, color)| {
+            let srgb_color = rgb_u8_to_srgb_u8(color);
+
+            if let Some(dmc) = self.find_dmc_by_color(&srgb_color) {
+                if let Some(cnt) = dmc_bom.get_mut(dmc) {
+                    *cnt += 1;
+                } else {
+                    dmc_bom.insert(dmc.clone(), 1);
+                }
+            } else {
+                not_mapped_count += 1;
+            }
+
+        });
+
+        (dmc_bom, not_mapped_count)
+    }
+
+    pub fn downgrade_to_srgb_palette(&self) -> PaletteSrgb<u8> {
+        PaletteSrgb::from_iter(self.elements
+            .iter()
+            .map(|dmc| dmc.color)
+        )
     }
 }
 
@@ -202,25 +265,5 @@ impl TryFrom<io::PaletteDmcDataIo> for PaletteDmc {
         } else {
             Ok(Self { elements: unique_dmc})
         }
-    }
-}
-
-impl PaletteDmc {
-    pub fn load_from_file<P>(filepath: P) -> Result<PaletteDmc, DmcError> 
-    where 
-        P: AsRef<Path> + Debug
-    {
-        let file = std::fs::File::open(&filepath)
-            .inspect_err(|_| {
-                tracing::error!("File not found: '{filepath:?}'");
-            })?;
-        let file_reader = BufReader::new(file);
-        let dmc_palette_data_io: io::PaletteDmcDataIo = serde_json::from_reader(file_reader)?;
-        let dmc_palette = PaletteDmc::try_from(dmc_palette_data_io)?;
-        Ok(dmc_palette)
-    }
-
-    pub fn load_from_file_default() -> Result<PaletteDmc, DmcError> {
-        Self::load_from_file(std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("./res/palette_dmc_full.json"))
     }
 }

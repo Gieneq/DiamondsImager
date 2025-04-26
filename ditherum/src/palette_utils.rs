@@ -36,16 +36,13 @@ impl PaletteSrgb<f32> {
     }
 }
 
-impl PaletteSrgb<u8> {
-    pub fn find_closest(&self, random_color: Srgb<f32>) -> Srgb<u8> {
-        assert!(!self.colors.is_empty());
+impl<T> PaletteSrgb<T> {
 
-        let result = self.colors.iter()
-            .min_by_key(|c| c.into_format().distance_squared(random_color) as i32)
-            .unwrap();
-        *result
+    pub fn from_iter<I: IntoIterator<Item = palette::Srgb<T>>>(iter: I) -> Self {
+        Self { colors: iter.into_iter().collect() }
     }
 }
+
 
 impl PaletteSrgb<u8> {
     pub const BLACK_N_WHITE_COLORS: [Srgb<u8>; 2] = [
@@ -107,6 +104,14 @@ impl PaletteSrgb<u8> {
         Self { colors: colors_transformed }
     }
 
+    pub fn find_closest(&self, random_color: Srgb<f32>) -> Srgb<u8> {
+        assert!(!self.colors.is_empty());
+
+        let result = self.colors.iter()
+            .min_by_key(|c| c.into_format().distance_squared(random_color) as i32)
+            .unwrap();
+        *result
+    }
     // Count colors ?
 }
 

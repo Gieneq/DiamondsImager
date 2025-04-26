@@ -1,4 +1,5 @@
 pub mod worker;
+pub mod image_manip;
 
 use std::{
     sync::Arc, 
