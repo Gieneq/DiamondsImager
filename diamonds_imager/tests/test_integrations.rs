@@ -181,8 +181,19 @@ mod test_uploading_image {
                 "too_big_image_15_MB.png", 
                 "/api/upload"
             ).await;
-            tracing::info!("response: {:?}", response);
-            assert!(response.is_err(), "Response: {:?}", response);
+
+            // Weird response, behaves differently depending on OS
+            #[cfg(target_os = "linux")]
+            {
+                let response = response.unwrap(); // Linux: unwrap Result<reqwest::Response>
+                assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+            }
+
+            #[cfg(target_os = "windows")]
+            {
+                assert!(response.is_err(), "Expected connection error on Windows");
+            }
+
         }).await;
     }
 
