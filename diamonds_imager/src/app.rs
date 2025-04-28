@@ -99,7 +99,7 @@ pub async fn app_serve(settings: Settings) -> Result<AppServeHandler, AppServeEr
     let listener = tokio::net::TcpListener::bind(format!("{}:{}", settings.address, settings.port)).await?;
     let address = listener.local_addr()?;
 
-    tracing::info!("listening on {}", address);
+    tracing::info!("{}({}) listening on {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"), address);
 
     let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel();
 
