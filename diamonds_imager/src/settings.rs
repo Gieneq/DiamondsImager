@@ -21,6 +21,10 @@ fn load_setting_string(key: &str) -> String {
     dotenv::var(key).unwrap_or_else(|_| panic!("Not found '{key}' in .env"))
 }
 
+fn load_setting_string_or_default(key: &str, default: String) -> String {
+    dotenv::var(key).unwrap_or(default)
+}
+
 fn load_setting_u16(key: &str) -> u16 {
     load_setting_string(key).parse().unwrap_or_else(|_| panic!("'{key}' value is not number"))
 }
@@ -47,8 +51,8 @@ impl Settings {
         }
 
         Self {
-            address: load_setting_string("SERVER_ADDRESS"),
-            port: load_setting_u16("SERVER_PORT"),
+            address: load_setting_string_or_default("SERVER_ADDRESS", "0.0.0.0".to_string()),
+            port: load_setting_u16("PORT"),
             image_max_bytes: (load_setting_u16("IMG_MAX_KIB") as usize) * 1024,
             image_min_size: load_size_u32("IMG_MIN_WIDTH", "IMG_MIN_HEIGHT"),
             image_max_size: load_size_u32("IMG_MAX_WIDTH", "IMG_MAX_HEIGHT"),
