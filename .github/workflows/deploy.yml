@@ -1,12 +1,14 @@
 name: Deploy to Railway
 
 on:
-  push:
-    branches:
-      - master
+  workflow_run:
+    workflows: ["CI - Build and Test"]
+    types:
+      - completed
 
 jobs:
   deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     container: ghcr.io/railwayapp/cli:latest
     env:

@@ -11,6 +11,13 @@ use reqwest::Client;
 
 const TEST_IMAGES_PATH: &str = "tests/res";
 
+fn init_tracing() {
+    let _ = tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::INFO)
+        .with_test_writer() // Output for tests
+        .try_init();
+}
+
 async fn upload_test_image(root_url: &str, client: &Client, filename: &str, endpoint: &str) -> Result<reqwest::Response, reqwest::Error> {
     let filepath = Path::new(TEST_IMAGES_PATH).join(filename);
     assert!(filepath.exists());
@@ -165,6 +172,8 @@ mod test_uploading_image {
 
     #[tokio::test]
     async fn test_upload_too_big_image_should_result_err() {
+        init_tracing();
+
         setup_server_environment_with_client( |root_url, client| async move {
             let response = upload_test_image(
                 &root_url, 
@@ -172,7 +181,8 @@ mod test_uploading_image {
                 "too_big_image_15_MB.png", 
                 "/api/upload"
             ).await;
-            assert!(response.is_err());
+            tracing::info!("response: {:?}", response);
+            assert!(response.is_err(), "Response: {:?}", response);
         }).await;
     }
 
