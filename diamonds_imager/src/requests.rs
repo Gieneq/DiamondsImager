@@ -1,10 +1,6 @@
-// use serde::{
-//     Deserialize, 
-//     Serialize
-// };
+use serde::Deserialize;
 
-// #[derive(Debug, Serialize, Deserialize)]
-// pub struct PaleteExtractRequest {
-//     id: String,
-//     colors_count: Option<usize>,
-// }
+#[derive(Debug, Deserialize)]
+pub struct ExtractQueryMaxColorsCount {
+    pub max_colors: Option<usize>,
+}

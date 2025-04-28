@@ -13,9 +13,9 @@ use crate::palette_utils::PaletteSrgb;
 
 use crate::algorithms::kernel;
 
-pub fn dithering_floyd_steinberg_srgb(source_image: image::RgbImage, palette_srgb_u8: PaletteSrgb<u8>) -> image::RgbImage {
-    let mut matrix_float_srgb = image_rgb_to_matrix_srgb_f32(&source_image);
-    let palette_srgb_float = PaletteSrgb::<f32>::from(&palette_srgb_u8);
+pub fn dithering_floyd_steinberg_srgb(source_image: &image::RgbImage, palette_srgb_u8: &PaletteSrgb<u8>) -> image::RgbImage {
+    let mut matrix_float_srgb = image_rgb_to_matrix_srgb_f32(source_image);
+    let palette_srgb_float = PaletteSrgb::<f32>::from(palette_srgb_u8);
 
     kernel::apply_2x2_kernel_processing(&mut matrix_float_srgb, |kernel| {
         let closest_tl_color = palette_srgb_float.find_closest(*kernel.tl);
@@ -44,5 +44,5 @@ pub fn dithering_floyd_steinberg_srgb(source_image: image::RgbImage, palette_srg
         );
     });
 
-    matrix_srgb_float_palette_quantization(&matrix_float_srgb, &palette_srgb_u8)
+    matrix_srgb_float_palette_quantization(&matrix_float_srgb, palette_srgb_u8)
 }

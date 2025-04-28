@@ -13,15 +13,20 @@ use tower_http::trace::{
 };
 
 use crate::{
-    recreate_dir, router, services::{dmc::PaletteDmc, ImageStorageService}, settings::Settings
+    router, 
+    services::{
+        dmc::PaletteDmc, processing::WorkDispatcher, ImageStorageService
+    }, 
+    settings::Settings
 };
 
 #[derive(Debug)]
 pub struct AppData {
     pub image_max_width: u32,
     pub image_max_height: u32,
+    pub palette_dmc_full: Arc<PaletteDmc>,
     pub image_storage_service: tokio::sync::Mutex<ImageStorageService>,
-    pub palette_dmc_full: PaletteDmc,
+    pub processing_runner_service: tokio::sync::Mutex<WorkDispatcher>,
 }
 
 impl Default for AppData {
@@ -29,8 +34,9 @@ impl Default for AppData {
         Self { 
             image_max_width: 1024, 
             image_max_height: 1024, 
-            palette_dmc_full: PaletteDmc::default(),
-            image_storage_service: Mutex::new(ImageStorageService::new())
+            palette_dmc_full: Arc::new(PaletteDmc::default()),
+            image_storage_service: Mutex::new(ImageStorageService::new()),
+            processing_runner_service: Mutex::new(WorkDispatcher::new()),
         }
     }
 }
@@ -79,7 +85,7 @@ pub async fn app_serve(settings: Settings) -> Result<AppServeHandler, AppServeEr
     let app_data = Arc::new(AppData {
         image_max_width: settings.image_max_size.width,
         image_max_height: settings.image_max_size.height,
-        palette_dmc_full,
+        palette_dmc_full: Arc::new(palette_dmc_full),
         ..Default::default()
     });
 

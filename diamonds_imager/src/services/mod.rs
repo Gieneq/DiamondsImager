@@ -1,30 +1,29 @@
 pub mod dmc;
+pub mod processing;
 
-use std::{collections::HashMap, path::Path};
+use std::{
+    collections::HashMap, 
+    path::Path, sync::Arc
+};
+
+use serde::{
+    Deserialize, 
+    Serialize
+};
 
 pub type ImageId = String;
 
-// pub struct ProcessingStatus {
-
-// }
-
-// pub struct ProcessingsIndex {
-//     pub index: HashMap<ImageId, ProcessingStatus>,
-// }
-
-// fn access_image_by_id(id: &ImageId) -> () {
-    
-// }
-
-// pub fn is_image_id_present(id: &ImageId) -> bool {
-
-// }
-
-#[derive(Debug)]
-pub struct ImageStorageElement {
-    pub image: image::RgbImage,
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ImageStorageMeta {
     pub filename: String,
-    // processing status
+    pub upload_time: chrono::DateTime<chrono::Utc>,
+    pub last_touch_time: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ImageStorageElement {
+    pub image: Arc<image::RgbImage>,
+    pub meta: ImageStorageMeta,
 }
 
 #[derive(Debug)]
@@ -69,9 +68,15 @@ impl ImageStorageService {
     pub fn insert_image(&mut self, filename: String, img: image::DynamicImage) -> Result<ImageId, ImageStorageServiceError> {
         let id = Self::generate_id(&filename)?;
 
+        let time_now = chrono::Utc::now();
+
         self.images.insert(id.clone(), ImageStorageElement {
-            image: img.into(),
-            filename
+            image: Arc::new(img.into()),
+            meta: ImageStorageMeta { 
+                filename, 
+                upload_time: time_now, 
+                last_touch_time: time_now 
+            }
         });
 
         Ok(id)
@@ -80,4 +85,19 @@ impl ImageStorageService {
     pub fn access_image(&self, id: &ImageId) -> Result<&ImageStorageElement, ImageStorageServiceError> {
         self.images.get(id).ok_or(ImageStorageServiceError::ImageNotFound)
     }
+
+    pub fn get_image_meta(&self, id: &ImageId) -> Result<ImageStorageMeta, ImageStorageServiceError> {
+        self.images.get(id)
+            .ok_or(ImageStorageServiceError::ImageNotFound)
+            .map(|e| e.meta.clone())
+    }
+
+    pub fn remove_image(&mut self, id: &ImageId) -> Result<(), ImageStorageServiceError> {
+        if self.images.remove(id).is_none() {
+            Err(ImageStorageServiceError::ImageNotFound)
+        } else {
+            Ok(())
+        }
+    }
 }
+

@@ -7,7 +7,7 @@ use axum::{
     }
 };
 
-use crate::services::ImageStorageServiceError;
+use crate::services::{processing::ProcessingError, ImageStorageServiceError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
@@ -18,7 +18,7 @@ pub enum AppError {
     ImageStorageServiceError(#[from] ImageStorageServiceError),
     
     #[error(transparent)]
-    PaletteExtract(#[from] PaletteExtractError),
+    ProcessingError(#[from] ProcessingError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -69,9 +69,27 @@ pub enum PaletteExtractError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status_code = match &self {
-            Self::UploadImage(_) => StatusCode::BAD_REQUEST,
-            Self::PaletteExtract(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::ImageStorageServiceError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::UploadImage(e) => match e {
+                UploadImageError::ImageEmpty => StatusCode::BAD_REQUEST,
+                UploadImageError::FilenameEmpty => StatusCode::BAD_REQUEST,
+                UploadImageError::ImageTooWide { max: _, actual: _ } => StatusCode::BAD_REQUEST,
+                UploadImageError::ImageTooHigh { max: _, actual: _ } => StatusCode::BAD_REQUEST,
+                UploadImageError::FilenameMissing => StatusCode::BAD_REQUEST,
+                UploadImageError::FilenameExtensionMissing => StatusCode::BAD_REQUEST,
+                UploadImageError::MultipartFailed(_) => StatusCode::BAD_REQUEST,
+                UploadImageError::FileIOFailed(_) => StatusCode::BAD_REQUEST,
+                UploadImageError::ImageError(_) => StatusCode::BAD_REQUEST,
+            },
+            Self::ProcessingError(e) => match e {
+                ProcessingError::Busy => StatusCode::PROCESSING,
+                ProcessingError::NotAvailable => StatusCode::PROCESSING,
+                ProcessingError::ServiceFailed => StatusCode::INTERNAL_SERVER_ERROR,
+            },
+            Self::ImageStorageServiceError(e) => match e {
+                ImageStorageServiceError::FilenameStemMissing => StatusCode::BAD_REQUEST,
+                ImageStorageServiceError::FilenameExtensionMissing => StatusCode::BAD_REQUEST,
+                ImageStorageServiceError::ImageNotFound => StatusCode::NOT_FOUND,
+            },
         };
 
         let body = axum::Json(serde_json::json!({ "error" : self.to_string()}));

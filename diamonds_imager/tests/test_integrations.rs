@@ -5,7 +5,7 @@ use std::{
 
 use diamonds_imager::app::app_serve;
 use diamonds_imager::results::{GetPaletteResult, UploadImageResult};
-use diamonds_imager::services::dmc::PaletteDmc;
+use diamonds_imager::services::{ImageId, ImageStorageMeta};
 use diamonds_imager::settings::Settings;
 use reqwest::Client;
 
@@ -43,6 +43,26 @@ async fn upload_basic_good_image(root_url: &str, client: &Client) -> Result<Uplo
     let response = upload_test_image(root_url, client, filename, "/api/upload").await?;
     assert!(response.status().is_success());
     response.json().await
+}
+
+async fn get_test_image_meta(root_url: &str, client: &Client, id: &ImageId) -> Result<Option<ImageStorageMeta>, reqwest::Error> {
+    let response = client.get(format!("{root_url}/api/image/{id}"))
+    .send()
+    .await?;
+
+    Ok(if response.status().is_success() {
+        Some(response.json().await?)
+    } else {
+        None
+    })    
+}
+
+async fn delete_test_image(root_url: &str, client: &Client, id: &ImageId) -> Result<bool, reqwest::Error> {
+    let response = client.delete(format!("{root_url}/api/image/{id}"))
+    .send()
+    .await?;
+
+    Ok(response.status().is_success())
 }
 
 static SERVER_LOCK: tokio::sync::OnceCell<tokio::sync::Mutex<()>> = tokio::sync::OnceCell::const_new();
@@ -209,6 +229,35 @@ mod test_palette {
         }).await;
     }
 }
+
+#[cfg(test)]
+mod test_image_access_delete {
+    use crate::*;
+
+    #[tokio::test]
+    async fn test_get_image_meta() {
+        setup_server_environment_with_client( |root_url, client| async move {
+            let upload_result = upload_basic_good_image(&root_url, &client).await.unwrap();
+            
+            let id = upload_result.id;
+            assert!(!id.is_empty());
+
+            // Get image meta
+            let image_meta_should_be_ok = get_test_image_meta(&root_url, &client, &id).await.unwrap().unwrap();
+            println!("{image_meta_should_be_ok:?}");
+
+            let was_deleted = delete_test_image(&root_url, &client, &id).await.unwrap();
+            assert!(was_deleted);
+
+            let was_deleted = delete_test_image(&root_url, &client, &id).await.unwrap();
+            assert!(!was_deleted);
+
+            let image_meta_result_should_be_none = get_test_image_meta(&root_url, &client, &id).await.unwrap();
+            assert!(image_meta_result_should_be_none.is_none());
+        }).await;
+    }
+}
+
 
 #[cfg(test)]
 mod test_processing {

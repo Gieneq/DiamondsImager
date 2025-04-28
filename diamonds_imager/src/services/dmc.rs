@@ -1,9 +1,16 @@
-use std::{collections::HashSet, fmt::Debug, hash::Hash, io::BufReader, path::Path};
+use std::{
+    collections::{HashMap, HashSet}, fmt::Debug, hash::Hash, io::BufReader, ops::Deref, path::Path
+};
+
+use ditherum::palette_utils::{color_manip::{self, rgb_u8_to_srgb_u8}, PaletteSrgb};
+use palette::color_difference::EuclideanDistance;
 
 use serde::{
     Deserialize, 
     Serialize
 };
+
+pub type DmcBom = HashMap<Dmc, u32>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DmcError {
@@ -45,19 +52,126 @@ impl Hash for Dmc {
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct PaletteDmc {
-    elements: Vec<Dmc>// TODO consider replacing with HashSet
+    elements: HashSet<Dmc>
 }
 
-impl AsRef<[Dmc]> for PaletteDmc {
-    fn as_ref(&self) -> &[Dmc] {
+impl AsRef<HashSet<Dmc> > for PaletteDmc {
+    fn as_ref(&self) -> &HashSet<Dmc> {
         &self.elements
+    }
+}
+
+impl Deref for PaletteDmc {
+    type Target = HashSet<Dmc>;
+    fn deref(&self) -> &Self::Target {
+        &self.elements
+    }
+}
+
+impl From<&DmcBom> for PaletteDmc {
+    fn from(bom: &DmcBom) -> Self {
+        PaletteDmc { elements: bom.keys().into_iter().cloned().collect() }
+    }
+}
+
+impl PaletteDmc {
+    pub fn load_from_file<P>(filepath: P) -> Result<PaletteDmc, DmcError> 
+    where 
+        P: AsRef<Path> + Debug
+    {
+        let file = std::fs::File::open(&filepath)
+            .inspect_err(|_| {
+                tracing::error!("File not found: '{filepath:?}'");
+            })?;
+        let file_reader = BufReader::new(file);
+        let dmc_palette_data_io: io::PaletteDmcDataIo = serde_json::from_reader(file_reader)?;
+        let dmc_palette = PaletteDmc::try_from(dmc_palette_data_io)?;
+        Ok(dmc_palette)
+    }
+
+    pub fn load_from_file_default() -> Result<PaletteDmc, DmcError> {
+        Self::load_from_file(std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("./res/palette_dmc_full.json"))
+    }
+
+    pub fn find_closest_dmc(&self, random_color: palette::Srgb<u8>) -> &Dmc {
+        assert!(!self.elements.is_empty());
+        let random_color_float = random_color.into_format();
+
+        self.elements.iter()
+            .min_by_key(|dmc| {
+                dmc.color
+                    .into_format::<f32>()
+                    .distance_squared(random_color_float) as i32
+            })
+            .expect("At least 1 element was in palette")
+    }
+
+    pub fn find_subset_closest_to_image_pixels(&self, image: &image::RgbImage, max_count: Option<usize>) -> HashMap<Dmc, u32> {
+        let mut colors_counts = HashMap::new();
+
+        image.enumerate_pixels().for_each(|(_, _, color)| {
+            let color_srgb = rgb_u8_to_srgb_u8(color);
+            let closest_color = self.find_closest_dmc(color_srgb);
+            if !colors_counts.contains_key(closest_color) {
+                colors_counts
+                    .entry(closest_color.clone())
+                    .and_modify(|cnt| { *cnt += 1; })
+                    .or_insert(1);
+            }
+        });
+
+        if let Some(max_count) = max_count {
+            let mut colors_vec = colors_counts
+                .into_iter()
+                .collect::<Vec<_>>();
+
+            colors_vec.sort_by_key(|(_, cnt)| std::cmp::Reverse(*cnt) );
+            colors_vec.truncate(max_count);
+            HashMap::from_iter(colors_vec.into_iter())
+        } else {
+            colors_counts
+        }
+    }
+
+    pub fn find_dmc_by_color(&self, color: &palette::Srgb<u8>) -> Option<&Dmc> {
+        self.elements.iter()
+            .find(|dmc| &dmc.color == color)
+    }
+
+    pub fn find_bom_of_image(&self, src_image: &image::RgbImage) -> (DmcBom, usize) {
+        let mut dmc_bom = HashMap::new();
+        let mut not_mapped_count = 0;
+
+        src_image.enumerate_pixels().for_each(|(_, _, color)| {
+            let srgb_color = rgb_u8_to_srgb_u8(color);
+
+            if let Some(dmc) = self.find_dmc_by_color(&srgb_color) {
+                if let Some(cnt) = dmc_bom.get_mut(dmc) {
+                    *cnt += 1;
+                } else {
+                    dmc_bom.insert(dmc.clone(), 1);
+                }
+            } else {
+                not_mapped_count += 1;
+            }
+
+        });
+
+        (dmc_bom, not_mapped_count)
+    }
+
+    pub fn downgrade_to_srgb_palette(&self) -> PaletteSrgb<u8> {
+        PaletteSrgb::from_iter(self.elements
+            .iter()
+            .map(|dmc| dmc.color)
+        )
     }
 }
 
 mod io {
     use super::*;
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
     pub struct DmcDataIo {
         pub name: String,
         pub code: String,
@@ -65,7 +179,7 @@ mod io {
     }
     
     #[derive(Debug, Default, Serialize, Deserialize)]
-    pub struct PaletteDmcDataIo(pub Vec<DmcDataIo>);
+    pub struct PaletteDmcDataIo(pub HashSet<DmcDataIo>);
 
     impl From<super::Dmc> for DmcDataIo {
         fn from(value: super::Dmc) -> Self {
@@ -87,7 +201,7 @@ mod io {
             let dmc_vec = value.elements
                 .into_iter()
                 .map(DmcDataIo::from)
-                .collect::<Vec<_>>();
+                .collect();
             PaletteDmcDataIo(dmc_vec)
         }
     }
@@ -136,36 +250,20 @@ impl TryFrom<io::PaletteDmcDataIo> for PaletteDmc {
         let dmc_vec = dmc_vec?;
 
         // Must consist of unique names, codes and colors
-        let unique_codes: HashSet<_> = dmc_vec.iter()
-            .map(|dmc| dmc.code.clone())
-            .collect();
+        let unique_codes = dmc_vec.iter()
+            .map(|dmc| &dmc.code)
+            .collect::<HashSet<_>>();
 
-        let unique_names: HashSet<_> = dmc_vec.iter()
-            .map(|dmc| dmc.name.clone())
-            .collect();
+        let unique_names  = dmc_vec.iter()
+            .map(|dmc| &dmc.name)
+            .collect::<HashSet<_>>();
 
-        let unique_colors: HashSet<_> = dmc_vec.iter().collect();
+        let unique_dmc = dmc_vec.iter().cloned().collect::<HashSet<_>>();
 
-        if unique_codes.len() != unique_names.len() || unique_codes.len() != unique_colors.len(){
+        if unique_codes.len() != unique_names.len() || unique_codes.len() != unique_dmc.len(){
             Err(Self::Error::DmcDataNotUnique)
         } else {
-            Ok(Self { elements: dmc_vec})
+            Ok(Self { elements: unique_dmc})
         }
-    }
-}
-
-impl PaletteDmc {
-    pub fn load_from_file<P>(filepath: P) -> Result<PaletteDmc, DmcError> 
-    where 
-        P: AsRef<Path> + Debug
-    {
-        let file = std::fs::File::open(&filepath)
-            .inspect_err(|_| {
-                tracing::error!("File not found: '{filepath:?}'");
-            })?;
-        let file_reader = BufReader::new(file);
-        let dmc_palette_data_io: io::PaletteDmcDataIo = serde_json::from_reader(file_reader)?;
-        let dmc_palette = PaletteDmc::try_from(dmc_palette_data_io)?;
-        Ok(dmc_palette)
     }
 }
