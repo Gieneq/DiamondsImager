@@ -186,7 +186,7 @@ mod test_uploading_image {
             #[cfg(target_os = "linux")]
             {
                 let response = response.unwrap(); // Linux: unwrap Result<reqwest::Response>
-                assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+                assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
             }
 
             #[cfg(target_os = "windows")]
